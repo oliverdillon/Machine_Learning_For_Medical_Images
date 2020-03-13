@@ -3,7 +3,7 @@ import psutil
 import os
 
 def Get_Input(filename):
-    img = np.load(filename+".npy")
+    img = np.load(filename)
     return img
 
 def Get_Output(filename):    
