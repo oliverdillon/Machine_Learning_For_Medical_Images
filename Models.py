@@ -16,7 +16,7 @@ from tensorflow.keras import models
 import matplotlib.pyplot as plt
 
 ################################# BUILDING 2D CNN #################################
-def build_2D_model(no_classes,shape):
+def build_2D_model(no_classes, shape, FilterNumbers= [32,64,128]):
     # Initialising the CNN
     model = Sequential() #add each layer in turn
 
@@ -50,23 +50,23 @@ def build_2D_model(no_classes,shape):
     print(model.summary())
     return model
 
-def build_3D_model(no_classes,shape):
+def build_3D_model(no_classes, shape,FilterNumbers= [32,64,128]):
     # Initialising the CNN
     model = Sequential() #add each layer in turn
 
     # First Convolutional Layer
-    model.add(Conv3D(8, (3, 3, 3), input_shape = shape, activation = 'relu'))
+    model.add(Conv3D(FilterNumbers[0], (3, 3, 3), input_shape = shape, activation = 'relu'))
     model.add(MaxPooling3D(pool_size = (2, 2, 2)))
 
     # Second Convolutional layer
-    model.add(Conv3D(16, (3, 3, 3), activation = 'relu'))
+    model.add(Conv3D(FilterNumbers[1], (3, 3, 3), activation = 'relu'))
     model.add(MaxPooling3D(pool_size = (2, 2, 2)))
 
     # Flattening for Dense Layer
     model.add(Flatten())
 
     # Full Connected "Dense" Layer
-    model.add(Dense(units = 32, activation = 'relu'))
+    model.add(Dense(units = FilterNumbers[2], activation = 'relu'))
 
     if (no_classes == 2):
         activ = 'sigmoid'

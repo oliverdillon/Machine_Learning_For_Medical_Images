@@ -12,7 +12,6 @@ def Get_Output(filename):
 
 def Three_D_Data_Generator(feature_files,label_files, BatchSize):
     while True:
-        print(len(feature_files))
         #Pick out the files for the batch
         FeatureFilesForBatch = np.random.choice(feature_files, BatchSize, replace = False)
         #Pick out the files for the batch
@@ -21,7 +20,6 @@ def Three_D_Data_Generator(feature_files,label_files, BatchSize):
         BatchY = []
         
         for file in FeatureFilesForBatch:
-            print(file)
             BatchX.append(Get_Input(file))
         for file in LabelFilesForBatch:
             BatchY.append(Get_Output(file))
