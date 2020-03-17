@@ -7,7 +7,7 @@ Created on Wed Feb 26 11:45:04 2020
 
 def get_Testing_Dictionary():
     stringTestingDirectory = "D:/Image Preprocessing/Testing/Uncropped"
-    stringTesting3DDirectory = "D:\Patient Preprocessing\Testing/"
+    stringTesting3DDirectory = "D:\Patient Preprocessing\Testing/Uncropped/"
     TestingFeaturesDict = {"3Class2Channel3Slice":stringTestingDirectory[:30]+"\Testing_Features_2D_3Class_2Channel_3Slice.npy",
                            "3ClassRGB3Slice":stringTestingDirectory[:30]+"\Testing_Features_2D_3Class_RGB_3Slice.npy",
                            "3Class2Channel3Slice_Uncropped":stringTestingDirectory+"\Testing_Features_2D_3Class_2Channel_3Slice.npy",
@@ -16,6 +16,7 @@ def get_Testing_Dictionary():
                            "RightParotids11Slice_Aug":stringTestingDirectory[:30]+"\Testing_Features_2D_RightParotids_2Channel_11Slice_Aug.npy",
                            "2Class2Channel3D_Uncropped":stringTestingDirectory+"\Testing_Features_3D_2Class_2Channel.npy",
                            "3Class2Channel3D_Uncropped":stringTesting3DDirectory+"Features/",
+                           "3Class2Channel3D":stringTesting3DDirectory[:33]+"Features/",
                            "3Class3Channel3Slice":stringTestingDirectory+"\Testing_Features_2D_3Class_3Channel_3Slice.npy",
                            "5Class2Channel3Slice":stringTestingDirectory+"\Testing_Features_2D_5Class_2Channel_3Slice.npy",
                            "5Class3Channel3Slice":stringTestingDirectory+"\Testing_Features_2D_5Class_3Channel_3Slice.npy",
@@ -29,7 +30,7 @@ def get_Testing_Dictionary():
                          "RightParotids11Slice_Aug":stringTestingDirectory[:30]+"\Testing_Label_2D_RightParotids_2Channel_11Slice_Aug.csv",
                          "2Class2Channel3D_Uncropped":stringTestingDirectory+"\Testing_Label_3D_2Class_2Channel.csv",
                          "3Class2Channel3D_Uncropped":stringTesting3DDirectory+"Labels/",
-                         
+                         "3Class2Channel3D":stringTesting3DDirectory[:33]+"Labels/",
                          "3Class3Channel3Slice":stringTestingDirectory+"\Testing_Label_2D_3Class_3Channel_3Slice.csv",
                          "5Class2Channel3Slice":stringTestingDirectory+"\Testing_Label_2D_5Class_2Channel_3Slice.csv",
                          "5Class3Channel3Slice":stringTestingDirectory+"\Testing_Label_2D_5Class_3Channel_3Slice.csv",
@@ -38,7 +39,7 @@ def get_Testing_Dictionary():
 
 def get_Training_Dictionary():
     stringTrainingDirectory = "D:/Image Preprocessing/Training/Uncropped"
-    stringTraining3DDirectory = "D:\Patient Preprocessing\Training/"
+    stringTraining3DDirectory = "D:\Patient Preprocessing\Training/Uncropped/"
     TrainingFeaturesDict = {"3Class2Channel3Slice":stringTrainingDirectory[:31]+"\Training_Features_2D_3Class_2Channel_3Slice.npy",
                             "3ClassRGB3Slice":stringTrainingDirectory[:31]+"\Training_Features_2D_3Class_RGB_3Slice.npy",
                             "3Class2Channel3Slice_Uncropped":stringTrainingDirectory+"\Training_Features_2D_3Class_2Channel_3Slice.npy",
@@ -47,7 +48,7 @@ def get_Training_Dictionary():
                             "RightParotids11Slice_Aug":stringTrainingDirectory[:31]+"\Training_Features_2D_RightParotids_2Channel_11Slice_Aug.npy",
                             "2Class2Channel3D_Uncropped":stringTrainingDirectory+"\Training_Features_3D_2Class_2Channel.npy",
                             "3Class2Channel3D_Uncropped":stringTraining3DDirectory+"Features/",
-                            
+                            "3Class2Channel3D":stringTraining3DDirectory[:33]+"Features/",
                             "3Class3Channel3Slice":stringTrainingDirectory+"\Training_Features_2D_3Class_3Channel_3Slice.npy",
                             "5Class2Channel3Slice":stringTrainingDirectory+"\Training_Features_2D_5Class_2Channel_3Slice.npy",
                             "5Class3Channel3Slice":stringTrainingDirectory+"\Training_Features_2D_5Class_3Channel_3Slice.npy",
@@ -60,7 +61,7 @@ def get_Training_Dictionary():
                           "RightParotids11Slice_Aug":stringTrainingDirectory[:31]+"\Training_Label_2D_RightParotids_2Channel_11Slice_Aug.csv",
                           "2Class2Channel3D_Uncropped":stringTrainingDirectory+"\Training_Label_3D_2Class_2Channel.csv",
                           "3Class2Channel3D_Uncropped":stringTraining3DDirectory+"Labels/",
-                          
+                          "3Class2Channel3D":stringTraining3DDirectory[:33]+"Features/",
                           "3Class3Channel3Slice":stringTrainingDirectory+"\Training_Label_2D_3Class_3Channel_3Slice.csv",
                           "5Class2Channel3Slice":stringTrainingDirectory+"\Training_Label_2D_5Class_2Channel_3Slice.csv",
                           "5Class3Channel3Slice":stringTrainingDirectory+"\Training_Label_2D_5Class_3Channel_3Slice.csv",

@@ -516,71 +516,129 @@ def image_preprocessing_3d(filename, start, end,key_Dict,no_Classes,structureFil
     f.close()
 
     print("SUCCESSS!")
+    
+########################## OBTAIN PAROTID CT IMAGES #############################
+
+def isolate_Brainstem_Images(structureFiles,pathIndex,k):
+    ds = pydicom.dcmread(structureFiles[pathIndex])
+    imagesFolder = np.load('RT Simulation CT Image Folder Paths.npy')
+    arrayFiles = os.listdir(imagesFolder[k]) 
+
+    #Finds correct contour id
+    referenceNumbersFound =[]
+
+    for i in range(0,len(ds.StructureSetROISequence)):
+        #Gets name of Structure
+        contourName = ds.StructureSetROISequence[i].ROIName
+        contourName = contourName.lower()
+
+        if((contourName.find("brainstem")!=-1 or contourName.find("brain stem")!=-1 )and contourName.find("ex")==-1 
+                    and contourName.find("2")==-1 and contourName.find("cm")==-1 and contourName.find("mm")==-1 and contourName.find("pv")==-1):
+            #parotids references structure
+            referenceNumbersFound.append(ds.StructureSetROISequence[i].ROINumber) 
+
+
+    #Extracts Parotid CT scans from data set according to found contour ID
+    ParotidCTImageFiles = []
+    
+    for i in range(0,len(ds.ROIContourSequence)):
+        for referenceNumber in referenceNumbersFound:
+
+            if (ds.ROIContourSequence[i].ReferencedROINumber == referenceNumber):
+                contourSequences = ds.ROIContourSequence[i].ContourSequence
+
+                for contourSequence in contourSequences:
+                    contourslice = contourSequence.ContourImageSequence[0].ReferencedSOPInstanceUID
+
+                    #Search through image files  
+                    for z in range(0,len(arrayFiles)):
+                            sliceDataset = pydicom.dcmread(imagesFolder[k]+arrayFiles[z])
+
+                            if (sliceDataset.SOPInstanceUID ==contourslice):
+                                
+                                ParotidCTImageFiles.append(arrayFiles[z])
+    
+    return list(ParotidCTImageFiles)
 ########################## DETECT IMAGE SIZE FOR PREPROCESSING ##############################
-def save_Image_Dimensions(structureFiles):
-    ###Initialise
-    Organs = ["Right_Parotid","Left_Parotid","Brainstem"]
+def save_Image_Dimensions(structureFiles,Organs =["Brainstem"]):
     #Load files
+    for Organ in Organs:
+        print(Organ)
+        for pathIndex in range(0,len(structureFiles)): 
+            try:
+                #Set maximal/minimal values
+                minimumExternalIndex1 = 10000000
+                maximumExternalIndex1 = -10000000
+                minimumExternalIndex2 = 10000000
+                maximumExternalIndex2 = -10000000
+                
+                #Load in Files:
+                output_path = structureFiles[pathIndex][0:23]
+                imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = load_Saved_Data(pathIndex,Organ,structureFiles)
+                DicomImageSet = isolate_Brainstem_Images(structureFiles,pathIndex,imageFolderIndex)
+                
+                Organ_Data = np.load(output_path+"External_Boundary_Contour.npy", allow_pickle=True)
+                if(len(Organ_Data) == 0):
+                    print("Loading Ring Contour")
+                    Organ_Data = np.load(output_path+"Extended_Ring_Boundary_Contour.npy", allow_pickle=True)
+                
+                #Search through found datasets
+                for z in range(0,len(DicomImageSet)-1):
+                    ds = pydicom.read_file(imagesFolders[imageFolderIndex]+DicomImageSet[z])
+        
+                    for i in range(0,len(Organ_Data)-1): 
+                        for j in range(0,len(Organ_Data[i])-1):
+                            num = str(ds.SliceLocation)
+                            num = decimal.Decimal(num)
+                            num = abs(num.as_tuple().exponent)
+                            loc = round(Organ_Data[i][j][2],num) 
+                            if (loc == ds.SliceLocation or Organ_Data[i][j][2] == ds.ImagePositionPatient[2]):
+                                #Get Relevant Coordinates
+                                ExternalIndex1 = int((Organ_Data[i][j][1]-ds.ImagePositionPatient[1])/ds.PixelSpacing[1])
+                                ExternalIndex2 = int((Organ_Data[i][j][0]-ds.ImagePositionPatient[0])/ds.PixelSpacing[0])
+                                
+                                #Update maximal/minimal values
+                                if(ExternalIndex1<minimumExternalIndex1):
+                                    minimumExternalIndex1 = ExternalIndex1
+                                if(ExternalIndex2<minimumExternalIndex2):
+                                    minimumExternalIndex2 = ExternalIndex2
+                                if(ExternalIndex1>maximumExternalIndex1):
+                                    maximumExternalIndex1 = ExternalIndex1
+                                if(ExternalIndex2>maximumExternalIndex2):
+                                    maximumExternalIndex2 = ExternalIndex2
+            except:
+                print("Error at index %2i"%pathIndex)                    
+            print("Top: %2.3f, Bottom: %2.3f, Left: %2.3f, Right: %2.3f"%(maximumExternalIndex2,minimumExternalIndex2,minimumExternalIndex1,maximumExternalIndex1))
+            #Save Values
+            dimensions = [maximumExternalIndex2,minimumExternalIndex2,minimumExternalIndex1,maximumExternalIndex1]
+            print("Top: %2.3f, Bottom: %2.3f, Left: %2.3f, Right: %2.3f"%(dimensions[0],dimensions[1],dimensions[2],dimensions[3]))
+            np.save(output_path+"ImageDimensions_"+Organ, dimensions)
+            
+    save_Final_Image_Dimensions(structureFiles,Organs)
+def save_Final_Image_Dimensions(structureFiles,Organs):
+    #Load files
+    minimumExternalIndex1 = 10000000
+    maximumExternalIndex1 = -10000000
+    minimumExternalIndex2 = 10000000
+    maximumExternalIndex2 = -10000000
     for Organ in Organs:
         for pathIndex in range(0,len(structureFiles)): 
-            #Set maximal/minimal values
-            minimumExternalIndex1 = 10000000
-            maximumExternalIndex1 = -10000000
-            minimumExternalIndex2 = 10000000
-            maximumExternalIndex2 = -10000000
-            
-            #Load in Files:
+            #Dimensions of Image
             output_path = structureFiles[pathIndex][0:23]
-            imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = load_Saved_Data(pathIndex,Organ,structureFiles)
-            Organ_Data = np.load(output_path+"External_Boundary_Contour.npy", allow_pickle=True)
+            print(output_path)
+            imageDimensions = np.load(output_path+"ImageDimensions_"+Organ+".npy", allow_pickle=True)
             
-            #Search through found datasets
-            for z in range(0,len(DicomImageSet)-1):
-                ds = pydicom.read_file(imagesFolders[imageFolderIndex]+DicomImageSet[z])
-    
-                for i in range(0,len(Organ_Data)-1): 
-                    for j in range(0,len(Organ_Data[i])-1):
-                        if (Organ_Data[i][j][2] == ds.ImagePositionPatient[2]):
-                            #Get Relevant Coordinates
-                            ExternalIndex1 = int((Organ_Data[i][j][1]-ds.ImagePositionPatient[1])/ds.PixelSpacing[1])
-                            ExternalIndex2 = int((Organ_Data[i][j][0]-ds.ImagePositionPatient[0])/ds.PixelSpacing[0])
-                            
-                            #Update maximal/minimal values
-                            if(ExternalIndex1<minimumExternalIndex1):
-                                minimumExternalIndex1 = ExternalIndex1
-                            if(ExternalIndex2<minimumExternalIndex2):
-                                minimumExternalIndex2 = ExternalIndex2
-                            if(ExternalIndex1>maximumExternalIndex1):
-                                maximumExternalIndex1 = ExternalIndex1
-                            if(ExternalIndex2>maximumExternalIndex2):
-                                maximumExternalIndex2 = ExternalIndex2
-        #Save Values
-        dimensions = [maximumExternalIndex2,minimumExternalIndex2,minimumExternalIndex1,maximumExternalIndex1]
-        print("Top: %2.3f, Bottom: %2.3f, Left: %2.3f, Right: %2.3f"%(dimensions[0],dimensions[1],dimensions[2],dimensions[3]))
-        np.save("D:\HNSCC/ImageDimensions_"+Organ, dimensions)
-    ###Initialise
-    Organs = ["Right_Parotid","Left_Parotid","Brainstem"]
-    #Load files
-    for Organ in Organs:
-        #Dimensions of Image
-        imageDimensions = np.load("D:\HNSCC/ImageDimensions_"+Organ+".npy", allow_pickle=True)
-        minimumExternalIndex1 = 10000000
-        maximumExternalIndex1 = -10000000
-        minimumExternalIndex2 = 10000000
-        maximumExternalIndex2 = -10000000
+            if(imageDimensions[3]>maximumExternalIndex1):
+                maximumExternalIndex1 = imageDimensions[2]
+            if(imageDimensions[2]<minimumExternalIndex1):
+                minimumExternalIndex1 = imageDimensions[3]
+            if(imageDimensions[1]<minimumExternalIndex2):
+                minimumExternalIndex2 = imageDimensions[1]
+            if(imageDimensions[0]>maximumExternalIndex2):
+                maximumExternalIndex2 = imageDimensions[0]
+                
+            print(imageDimensions)
         
-        if(imageDimensions[3]<minimumExternalIndex1):
-            minimumExternalIndex1 = imageDimensions[3]
-        if(imageDimensions[1]<minimumExternalIndex2):
-            minimumExternalIndex2 = imageDimensions[1]
-        if(imageDimensions[2]>maximumExternalIndex1):
-            maximumExternalIndex1 = imageDimensions[2]
-        if(imageDimensions[0]>maximumExternalIndex2):
-            maximumExternalIndex2 = imageDimensions[0]
-            
-        print(imageDimensions)
-        height = imageDimensions[0] -imageDimensions[1]
-        width = imageDimensions[3]- imageDimensions[2]
-        
-    dimensions = [maximumExternalIndex2,minimumExternalIndex2,minimumExternalIndex1,maximumExternalIndex1]    
+    dimensions = [maximumExternalIndex2,minimumExternalIndex2,minimumExternalIndex1,maximumExternalIndex1] 
+    print("Top: %2.3f, Bottom: %2.3f, Left: %2.3f, Right: %2.3f"%(dimensions[0],dimensions[1],dimensions[2],dimensions[3]))
     np.save("D:\HNSCC/ImageDimensions", dimensions)

@@ -7,9 +7,8 @@ Created on Wed Feb 26 14:04:58 2020
 # Importing the Keras libraries and packages
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten, MaxPooling2D,Conv2D
-from tensorflow.keras.layers import MaxPooling3D,Conv3D
-from tensorflow.keras.layers import Input, concatenate, UpSampling2D,Conv2DTranspose
-from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import MaxPooling3D,Conv3D,Dropout
+from tensorflow.keras.layers import Input,concatenate,UpSampling2D,Conv2DTranspose
 from tensorflow.keras import Model
 import numpy as np
 from tensorflow.keras import models
@@ -26,13 +25,14 @@ def build_2D_model(no_classes, shape, FilterNumbers= [32,64,128]):
 
     # Second Convolutional layer
     model.add(Conv2D(64, (3, 3), activation = 'relu'))
-    model.add(MaxPooling2D(pool_size = (2, 2)))
+    model.add(MaxPooling2D(pool_size = (2, 2)))  
 
     # Flattening for Dense Layer
     model.add(Flatten())
-
+    
     # Full Connected "Dense" Layer
     model.add(Dense(units = 128, activation = 'relu'))
+    
     
     if (no_classes == 2):
         activ = 'sigmoid'
@@ -57,16 +57,22 @@ def build_3D_model(no_classes, shape,FilterNumbers= [32,64,128]):
     # First Convolutional Layer
     model.add(Conv3D(FilterNumbers[0], (3, 3, 3), input_shape = shape, activation = 'relu'))
     model.add(MaxPooling3D(pool_size = (2, 2, 2)))
+    
+    model.add(Dropout(0.25))
 
     # Second Convolutional layer
     model.add(Conv3D(FilterNumbers[1], (3, 3, 3), activation = 'relu'))
     model.add(MaxPooling3D(pool_size = (2, 2, 2)))
+
+    model.add(Dropout(0.25))
 
     # Flattening for Dense Layer
     model.add(Flatten())
 
     # Full Connected "Dense" Layer
     model.add(Dense(units = FilterNumbers[2], activation = 'relu'))
+
+    model.add(Dropout(0.5))
 
     if (no_classes == 2):
         activ = 'sigmoid'
