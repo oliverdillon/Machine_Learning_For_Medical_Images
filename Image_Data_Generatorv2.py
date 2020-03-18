@@ -1,9 +1,10 @@
 import numpy as np
 import psutil
 import os
-import keras
+#import keras
+from tensorflow.python.keras.utils.data_utils import Sequence
        
-class Data_Generator_3D(keras.utils.Sequence):
+class Data_Generator_3D(Sequence):
 
     def __init__(self, feature_files, label_files, batch_size, dim=(249, 374,45), n_channels=1,
                  n_classes=3):
