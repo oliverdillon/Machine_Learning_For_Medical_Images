@@ -37,11 +37,11 @@ class Data_Generator_3D(Sequence):
             self.x.append(features)
             self.y.append(label)
     
-    def Get_Input(filename):
+    def Get_Input(self,filename):
         img = np.load(filename)
         return img
 
-    def Get_Output(filename):    
+    def Get_Output(self,filename):    
         labels = np.genfromtxt(filename, delimiter = ',')
         return labels
        
