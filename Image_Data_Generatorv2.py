@@ -5,11 +5,13 @@ import keras
        
 class Data_Generator_3D(keras.utils.Sequence):
 
-    def __init__(self, feature_files, label_files, batch_size):
-        
+    def __init__(self, feature_files, label_files, batch_size, dim=(249, 374,45), n_channels=1,
+                 n_classes=3):
+        print("Initialise")
+        self.files = [file for file in zip(feature_files,label_files)]
         self.x, self.y = feature_files, label_files
         self.batch_size = batch_size
-
+        self.on_epoch_end()
     def __len__(self):
         return int(np.ceil(len(self.x) / float(self.batch_size)))
 
@@ -19,14 +21,20 @@ class Data_Generator_3D(keras.utils.Sequence):
         
         batch_Paths_X = self.x[batch_index1:batch_index2]
         batch_Paths_y = self.y[batch_index1:batch_index2]
+        print("Check1")
         batch_x, batch_y = self.Three_D_Data_Generator(batch_Paths_X,batch_Paths_y)
 
         return np.array(batch_x), np.array(batch_y)
    
     def on_epoch_end(self):
         'Shuffles after each epoch'
-        np.random.shuffle(self.indexes) 
-    
+        np.random.shuffle(self.files) 
+        self.x = []
+        self.y = []
+        
+        for features, label in self.files:
+            self.x.append(features)
+            self.y.append(label)
     
     def Get_Input(filename):
         img = np.load(filename)
