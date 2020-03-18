@@ -5,20 +5,21 @@ import keras
        
 class Data_Generator_3D(keras.utils.Sequence):
 
-    def __init__(self, x_set, y_set, batch_size):
+    def __init__(self, feature_files, label_files, batch_size):
         
-        self.x, self.y = x_set, y_set
+        self.x, self.y = feature_files, label_files
         self.batch_size = batch_size
 
     def __len__(self):
         return int(np.ceil(len(self.x) / float(self.batch_size)))
 
     def __getitem__(self, idx):
-        batch_index = idx * self.batch_size:(idx + 1) * self.batch_size
+        batch_index1 = idx * self.batch_size
+        batch_index2 = (idx + 1) * self.batch_size
         
-        batch_IDs_X = [self.list_IDs[k] for k in indx]
-        
-        batch_x, batch_y = Three_D_Data_Generator(batch_IDs,batch_IDs)
+        batch_Paths_X = self.x[batch_index1:batch_index2]
+        batch_Paths_y = self.y[batch_index1:batch_index2]
+        batch_x, batch_y = self.Three_D_Data_Generator(batch_Paths_X,batch_Paths_y)
 
         return np.array(batch_x), np.array(batch_y)
    
@@ -36,22 +37,15 @@ class Data_Generator_3D(keras.utils.Sequence):
         return labels
        
     def Three_D_Data_Generator(self,feature_files,label_files):
-        #Pick out the files for the batch
-        FeatureFilesForBatch = np.random.choice(feature_files, BatchSize, replace = False)
-        #Pick out the files for the batch
-        LabelFilesForBatch = np.random.choice(label_files, BatchSize, replace = False)
         BatchX = []
         BatchY = []
-        
-        for i,file in enumerate(feature_files):
+        for file in feature_files:
             BatchX.append(self.Get_Input(file))
-        for i,file in enumerate(label_files):
+        for file in label_files:
             BatchY.append(self.Get_Output(file))
         BatchX = np.array(BatchX)
         BatchY = np.array(BatchY)
         
-        process = psutil.Process(os.getpid())
-        print("Memory usage: {:.2%}".format(process.memory_percent()))
         print(BatchX.shape)
         
         #like return but for data generators
