@@ -21,7 +21,7 @@ from time import gmtime
 import time
 
 ########################## LOAD FILES FOR PREPROCESSING ##############################
-def load_Saved_Data(pathIndex,Organ,structureFiles):
+def load_Saved_Data(pathIndex,Organ,structureFiles,PrintInfo=False):
     ##Load
     output_path = structureFiles[pathIndex][0:23]   
     imagesFolders = np.load('RT Simulation CT Image Folder Paths.npy')
@@ -35,8 +35,9 @@ def load_Saved_Data(pathIndex,Organ,structureFiles):
     DicomImageSet = os.listdir(imagesFolders[k])
     
     #Output Checks
-    print(structureFiles[pathIndex])
-    print(imagesFolders[k])
+    if(PrintInfo): print("\n"+output_path)
+    #print(structureFiles[pathIndex])
+    #print(imagesFolders[k])
     
     ##Load Parotids Contours
     if (Organ.find("Right_Parotid")!=-1):
@@ -84,7 +85,7 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
         height = 512 
         width = 512 
     else:
-        padding = 10
+        padding = 0
         height = imageDimensions[0] -imageDimensions[1] +padding*2
         width =imageDimensions[2]- imageDimensions[3]+padding*2
         
@@ -188,11 +189,11 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
             else:
                 TotalImageDictionary[ds.ImagePositionPatient[2]] = [Channel_Array,0]
                 
-    OrderedImagesArray,label = sort_Data(TotalImageDictionary,Organ,no_Classes)
+    OrderedImagesArray,label = sort_Data(TotalImageDictionary,Organ,key_Dict,no_Classes)
     return OrderedImagesArray,label
 
 ########################## SORT CT IMAGES ##############################
-def sort_Data(TotalImageDictionary,Organ,no_Classes):
+def sort_Data(TotalImageDictionary,Organ,key_Dict,no_Classes):
     
     #Correct the order of the array
     OrderedImagesDictionary = collections.OrderedDict(sorted(TotalImageDictionary.items()))
@@ -207,19 +208,35 @@ def sort_Data(TotalImageDictionary,Organ,no_Classes):
         
         #Extract only the relevant slices 
         for key, value in OrderedImagesDictionary.items():
-            if(abs(top-key)<175):
-                ImageArray =value[0] 
-                OrderedImagesArray.append(ImageArray) 
-                if (value[1] == 1):
-                    #print(key)
-                    check=True
-            elif(len(OrderedImagesArray)==57 or len(OrderedImagesArray)==68):
-                OrderedImagesArray.append(ImageArray) 
+            if(key_Dict .find("Uncropped")!=-1):
+                if(abs(top-key)<175):
+                    ImageArray =value[0] 
+                    OrderedImagesArray.append(ImageArray) 
+                    if (value[1] == 1):
+                        #print(key)
+                        check=True
+                elif(len(OrderedImagesArray)==57 or len(OrderedImagesArray)==68):
+                    OrderedImagesArray.append(ImageArray)
+            else:
+                if(abs(top-key)<136):
+                    ImageArray =value[0] 
+                    OrderedImagesArray.append(ImageArray) 
+                    if (value[1] == 1):
+                        #print(key)
+                        check=True
+                elif(len(OrderedImagesArray)==68 or len(OrderedImagesArray)==68):
+                    OrderedImagesArray.append(ImageArray)
     
-    while(len(OrderedImagesArray)>69):
-        OrderedImagesArray.pop()
-    while(len(OrderedImagesArray) > 58 and len(OrderedImagesArray) !=69):
-        OrderedImagesArray.pop()
+    if(key_Dict .find("Uncropped")!=-1):
+        while(len(OrderedImagesArray)>69):
+            OrderedImagesArray.pop()
+        while(len(OrderedImagesArray) > 58 and len(OrderedImagesArray) !=69):
+            OrderedImagesArray.pop()
+    else:
+        while(len(OrderedImagesArray)>54):
+            OrderedImagesArray.pop()
+        while(len(OrderedImagesArray) > 45 and len(OrderedImagesArray) !=54):
+            OrderedImagesArray.pop()
             
     #Automate Labelling process
     Organs = ["Right_Parotid","Right_Parotid_Aug""Left_Parotid","Brainstem","Right_Cochlea","Left_Cochlea"]
@@ -274,7 +291,7 @@ def saveArray_2d(filename, arraySaveData,organ_count, key_Dict):
         height = 512
         width = 512 
     else:
-        padding = 10
+        padding = 0
         height = imageDimensions[0] -imageDimensions[1] +padding*2
         width = imageDimensions[2]- imageDimensions[3]+padding*2
     
@@ -314,12 +331,14 @@ def saveArray_3d(filename, X,y,Organ, key_Dict,Patient_Name):
     if(key_Dict.find("Uncropped")!=-1):
         height = 512
         width = 512  
+        depth =58
     else:
-        padding = 10
+        padding = 0
         height = imageDimensions[0] -imageDimensions[1] +padding*2
         width = imageDimensions[2]- imageDimensions[3]+padding*2
+        depth= 45
+
     
-    depth =58
     if(key_Dict.find("RGB")!=-1):
         XNew = np.array(X).reshape(width,height,depth,3)
     else:
@@ -339,8 +358,8 @@ def saveArray_3d(filename, X,y,Organ, key_Dict,Patient_Name):
         
     return directory_Features,directory_Labels
 ################################# INTERPOLATE DATA #################################
-def get_Patient(pathIndex,Organ,structureFiles):
-    imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = load_Saved_Data(pathIndex,Organ,structureFiles)
+def get_Patient(pathIndex,Organ,structureFiles,PrintInfo=False):
+    imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = load_Saved_Data(pathIndex,Organ,structureFiles,PrintInfo)
     
     images_in_Folder = [imagesFolders[imageFolderIndex] + image for image in DicomImageSet]
 
@@ -356,14 +375,14 @@ def get_Patient(pathIndex,Organ,structureFiles):
     for i in range(len(slices)-1):
         thicknesses.append( slices[1].ImagePositionPatient[2] -slices[0].ImagePositionPatient[2])
     thickness = np.mean(thicknesses)
-    print("Thickness 1: %3.3f"%thickness)
+    if(PrintInfo): print("Thickness 1: %3.3f"%thickness)
     if(slices[0].SliceThickness!=""):
         print("Thickness 2: %3.3f"%slices[0].SliceThickness)
         
         if (thickness+0.25> slices[0].SliceThickness and thickness-0.25<slices[0].SliceThickness):
             thickness = slices[0].SliceThickness
     if(thickness%0.25):
-        print("Thickness 3: %3.3f"%thickness)
+        if(PrintInfo): print("Thickness 3: %3.3f"%thickness)
         #rounding method
         temp = thickness
         count = 0
@@ -371,7 +390,7 @@ def get_Patient(pathIndex,Organ,structureFiles):
             temp-=0.25
             count+=1
         check = count*0.25
-        print("check 3: %3.3f"%check)
+        if(PrintInfo): print("check 3: %3.3f"%check)
         if(thickness-check>0.125):
             thickness =check+0.25
         elif(thickness-check<-0.125):
@@ -380,10 +399,10 @@ def get_Patient(pathIndex,Organ,structureFiles):
             thickness =check
                 
             
-        print("Thickness 3: %3.3f"%thickness)
+        if(PrintInfo): print("Thickness 3: %3.3f"%thickness)
         if(thickness%0.25):
             thickness = math.trunc(thickness)
-            print("Thickness 4: %3.3f"%thickness)
+            if(PrintInfo): print("Thickness 4: %3.3f"%thickness)
     return DicomPatient,thickness
 def interpolateArray(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
    
@@ -460,24 +479,27 @@ def image_preprocessing_3d(filename, start, end,key_Dict,no_Classes,structureFil
     directories =[]
     for organ in Organs:
             countDict[organ] = 0
-           
+    if(key_Dict.find("Uncropped")!=-1):
+        requiredNo = 58
+    else:
+        requiredNo = 45
     #Call Preprocessing Functions
     for pathIndex in range(start,end):
         for j in range(no_Classes):
-            DicomPatient,thickness = get_Patient(pathIndex,Organs[j],structureFiles)
+            DicomPatient,thickness = get_Patient(pathIndex,Organs[j],structureFiles,True)
             print(thickness)
             if(thickness== 3):
                 tempArray, tempLabel =get_contoured_organ(pathIndex,Organs[j],key_Dict,no_Classes,structureFiles)
             else:
                 tempArray, tempLabel =interpolateArray(pathIndex,Organs[j],key_Dict,no_Classes,structureFiles)
                 
-            if(tempLabel!="False"and len(tempArray) ==58):
+            if(tempLabel!="False"and len(tempArray) ==requiredNo):
                 patient_name = structureFiles[pathIndex][9:22]
                 directory_Features,directory_Labels = saveArray_3d( filename,tempArray,tempLabel,Organs[j],key_Dict,patient_name)
                 directories.append([directory_Features,directory_Labels])
                 countDict[Organs[j]] +=1
             else:
-                print("Skipped:")
+                print("Skipped: Only has %2i slices"%len(tempArray))
                 
     print("Pre Shuffle")   
     random.shuffle (directories)

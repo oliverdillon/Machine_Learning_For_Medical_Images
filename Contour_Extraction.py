@@ -122,7 +122,29 @@ def save_Brainstem_Contours(structureFiles):
                 print("Error at Index %2i"%z) 
     
     print("Number of Brainstem: %2i"%noOfBrainstem)
+########################## OBTAIN AND SAVE ISOCENTRE STRUCTURE CONTOURS ##############################
+def save_Isocentre_Contours(structureFiles):
+    noOfIsocentres =0
+    for z in range(0,len(structureFiles)):
+        Isocentres =[]
+        output_path = structureFiles[z][0:23]
+        ##Contours
+        dataset = dicomparser.DicomParser(structureFiles[z])
+        structures = dataset.GetStructures()
+        for i in range(1,len(structures)): #to strip out the parotids
+            try:
+                StructureCoordDicts =[]
+                name = str(structures[i]['name']).lower()
+                if ((name.find("iso")!=-1)and name.find("final")==-1):
+                    StructureCoordDicts.append(dataset.GetStructureCoordinates(i))
+                    for j in list(StructureCoordDicts[0]): #iterate through the dictionary i get in line 14
+                        Isocentres.append(StructureCoordDicts[0][j][0]['data']) #pull out only the matrix of xyz value
+                    noOfIsocentres += 1
+                np.save(output_path+"Isocenter_Contour", Isocentres)#saves contours in correct folder
+            except:
+                print("Error at Index %2i"%z) 
     
+    print("Number of Isocentres: %2i"%noOfIsocentres) 
 ########################## OBTAIN AND SAVE COCHLEA STRUCTURE CONTOURS ##############################
 def save_Cochlea_Contours(structureFiles):
     noOfRightCochlea =0
