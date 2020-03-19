@@ -27,7 +27,7 @@ class Data_Generator_3D(Sequence):
    
     def on_epoch_end(self):
         'Shuffles after each epoch'
-        np.random.shuffle(self.files) 
+        #np.random.shuffle(self.files) 
         print("Shuffle")
         self.x = []
         self.y = []
@@ -38,6 +38,7 @@ class Data_Generator_3D(Sequence):
     
     def Get_Input(self,filename):
         img = np.load(filename)
+        print(filename)
         return img
 
     def Get_Output(self,filename):    
