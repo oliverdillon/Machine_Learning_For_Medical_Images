@@ -12,10 +12,11 @@ from tensorflow.keras.layers import Input,concatenate,UpSampling2D,Conv2DTranspo
 from tensorflow.keras import Model
 import numpy as np
 from tensorflow.keras import models
+from tensorflow.keras.optimizers import Adam
 import matplotlib.pyplot as plt
 
 ################################# BUILDING 2D CNN #################################
-def build_2D_model(no_classes, shape, FilterNumbers= [32,64,128]):
+def build_2D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128]):
     # Initialising the CNN
     model = Sequential() #add each layer in turn
 
@@ -44,13 +45,15 @@ def build_2D_model(no_classes, shape, FilterNumbers= [32,64,128]):
     #Output Layer
     model.add(Dense(units = no_classes, activation = activ))
 
+    optimize = Adam(learning_rate=lr, beta_1=0.9, beta_2=0.999, amsgrad=False)
+    
     # Compiling the CNN
-    model.compile(optimizer = 'adam', loss = loss_func, metrics = ['accuracy'])
+    model.compile(optimizer = optimize, loss = loss_func, metrics = ['accuracy'])
     
     print(model.summary())
     return model
 
-def build_3D_model(no_classes, shape,FilterNumbers= [32,64,128]):
+def build_3D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128],Dropout = True):
     # Initialising the CNN
     model = Sequential() #add each layer in turn
 
@@ -58,21 +61,24 @@ def build_3D_model(no_classes, shape,FilterNumbers= [32,64,128]):
     model.add(Conv3D(FilterNumbers[0], (3, 3, 3), input_shape = shape, activation = 'relu'))
     model.add(MaxPooling3D(pool_size = (2, 2, 2)))
     
-    model.add(Dropout(0.25))
+    if(Dropout):
+        model.add(Dropout(0.25))
 
     # Second Convolutional layer
     model.add(Conv3D(FilterNumbers[1], (3, 3, 3), activation = 'relu'))
     model.add(MaxPooling3D(pool_size = (2, 2, 2)))
-
-    model.add(Dropout(0.25))
+    
+    if(Dropout):
+        model.add(Dropout(0.25))
 
     # Flattening for Dense Layer
     model.add(Flatten())
 
     # Full Connected "Dense" Layer
     model.add(Dense(units = FilterNumbers[2], activation = 'relu'))
-
-    model.add(Dropout(0.5))
+    
+    if(Dropout):
+        model.add(Dropout(0.8))
 
     if (no_classes == 2):
         activ = 'sigmoid'
@@ -83,9 +89,11 @@ def build_3D_model(no_classes, shape,FilterNumbers= [32,64,128]):
     
     #Output Layer
     model.add(Dense(units = no_classes, activation = activ))
-
+    
+    optimize = Adam(learning_rate=lr, beta_1=0.9, beta_2=0.999, amsgrad=False)
+    
     # Compiling the CNN
-    model.compile(optimizer = 'adam', loss = loss_func, metrics = ['accuracy'])
+    model.compile(optimizer = optimize, loss = loss_func, metrics = ['accuracy'])
     
     print(model.summary())
     return model
