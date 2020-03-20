@@ -53,7 +53,7 @@ def build_2D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128]):
     print(model.summary())
     return model
 
-def build_3D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128],Dropout = True):
+def build_3D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128],Drop = True):
     # Initialising the CNN
     model = Sequential() #add each layer in turn
 
@@ -61,14 +61,14 @@ def build_3D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128],Dropout 
     model.add(Conv3D(FilterNumbers[0], (3, 3, 3), input_shape = shape, activation = 'relu'))
     model.add(MaxPooling3D(pool_size = (2, 2, 2)))
     
-    if(Dropout):
+    if(Drop):
         model.add(Dropout(0.25))
 
     # Second Convolutional layer
     model.add(Conv3D(FilterNumbers[1], (3, 3, 3), activation = 'relu'))
     model.add(MaxPooling3D(pool_size = (2, 2, 2)))
     
-    if(Dropout):
+    if(Drop):
         model.add(Dropout(0.25))
 
     # Flattening for Dense Layer
@@ -77,7 +77,7 @@ def build_3D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128],Dropout 
     # Full Connected "Dense" Layer
     model.add(Dense(units = FilterNumbers[2], activation = 'relu'))
     
-    if(Dropout):
+    if(Drop):
         model.add(Dropout(0.8))
 
     if (no_classes == 2):
