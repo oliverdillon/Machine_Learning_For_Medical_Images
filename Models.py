@@ -78,7 +78,7 @@ def build_3D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128],Drop = T
     model.add(Dense(units = FilterNumbers[2], activation = 'relu'))
     
     if(Drop):
-        model.add(Dropout(0.8))
+        model.add(Dropout(0.5))
 
     if (no_classes == 2):
         activ = 'sigmoid'
