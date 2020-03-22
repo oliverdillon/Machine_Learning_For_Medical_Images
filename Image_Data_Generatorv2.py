@@ -41,7 +41,7 @@ class Data_Generator_3D(Sequence):
         print(filename)
         img = img[...,1]
         img = np.divide(img,255)
-        return [img]
+        return np.expand_dims(img, axis = 0)
 
     def Get_Output(self,filename):    
         labels = np.genfromtxt(filename, delimiter = ',')
