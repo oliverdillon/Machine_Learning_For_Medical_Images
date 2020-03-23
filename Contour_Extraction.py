@@ -135,7 +135,7 @@ def save_Isocentre_Contours(structureFiles):
             try:
                 StructureCoordDicts =[]
                 name = str(structures[i]['name']).lower()
-                if ((name.find("iso")!=-1)and name.find("final")==-1):
+                if ((name.find("iso")!=-1 and name.find("mark")!=-1)and name.find("final")==-1 and name.find("lao")==-1 and name.find("boost")==-1 ):
                     StructureCoordDicts.append(dataset.GetStructureCoordinates(i))
                     for j in list(StructureCoordDicts[0]): #iterate through the dictionary i get in line 14
                         Isocentres.append(StructureCoordDicts[0][j][0]['data']) #pull out only the matrix of xyz value
