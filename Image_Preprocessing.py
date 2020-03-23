@@ -51,6 +51,7 @@ def load_Saved_Data(pathIndex,Organ,structureFiles,PrintInfo=False):
     elif (Organ.find("Left_Cochlea")!=-1):
         Organ_Data = np.load(output_path+'Left_Contour_Cochleas.npy', allow_pickle=True)
     return imagesFolders,k,DicomImageSet,Organ_Data
+
 def get_First_Slice_Height(pathIndex,structureFiles):
     imagesFolders_Brainstem,imageFolderIndex_Brainstem,DicomImageSet_Brainstem,Brainstem_Data = load_Saved_Data(pathIndex,"Brainstem",structureFiles)
     minValue = 100000
@@ -95,8 +96,9 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
         ds = pydicom.read_file(imagesFolders[imageFolderIndex]+DicomImageSet[z])
         dcm = dicomparser.DicomParser(imagesFolders[imageFolderIndex]+DicomImageSet[z])
         
+        #Only uses CT Images below the max height of the brainstem
         if(ds.ImagePositionPatient[2]<maxValue):
-            #if(ds.ImagePositionPatient[2]>minValue):
+
             #Create CT Image in the right format
             image = dcm.GetImage()
             if(key_Dict.find("RGB")!=-1):
@@ -111,26 +113,16 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
             ImageArray.flags.writeable = 1
             
             ContourPoints = []
-            isOrgan = False
-            repeat =True
+            isOrgan = False #checks that the ct set has a contoured organ
+            
+            #Loops through contour data
             for i in range(0,len(Organ_Data)-1): 
                 for j in range(0,len(Organ_Data[i])-1):
-                    #a counts for rounding diff
+                    #accounts for rounding differences
                     num = str(ds.SliceLocation)
                     num = decimal.Decimal(num)
                     num = abs(num.as_tuple().exponent)
                     loc = round(Organ_Data[i][j][2],num) 
-                    """
-                    if(-1.262750e+03> ds.ImagePositionPatient[2] and ds.ImagePositionPatient[2]>-1.267810e+03 and repeat==True):
-                        print(ds.ImagePositionPatient[2])
-                        print(ds.SliceLocation)
-                        print("Missing Slice")
-                        repeat =False
-                    if(-1.267810e+03>Organ_Data[i][j][2] and Organ_Data[i][j][2]>-1.262750e+03):
-                        print(Organ_Data[i][j][2])
-                        print(ds.SliceLocation)
-                        print("Match")
-                    """
                     if (loc == ds.SliceLocation or Organ_Data[i][j][2] == ds.ImagePositionPatient[2]):
                         #Contouring
                         isOrgan =True
@@ -151,8 +143,8 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
                                 ImageArray[OrganIndex2][OrganIndex1][0] = 255 
                         else:
                             #For contour mask consideration:
-                            ContourPoints.append((OrganIndex1,OrganIndex2))
-                        
+                            ContourPoints.append((OrganIndex1,OrganIndex2))  
+                
             if(key_Dict.find("RGB")!=-1):
                 #For RGB consideration:
                 if(key_Dict.find("Uncropped")!=-1):
@@ -160,12 +152,10 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
                 else:
                     Channel_Array = ImageArray[imageDimensions[3]-padding: imageDimensions[2]+padding, imageDimensions[1]-padding:imageDimensions[0]+padding,:]
             else:
-                if(key_Dict.find("Uncropped")==-1):
-                    ImageArray = ImageArray[imageDimensions[3]-padding: imageDimensions[2]+padding, imageDimensions[1]-padding:imageDimensions[0]+padding]
-                
                 #For contour consideration:
                 if(isOrgan ==True):
                     if(Organ.find("Aug")!=-1):
+                        #For contour consistency checks
                         ContourPoints = Transformation.rotate_around_point(ContourPoints)
                         ContourPoints = Transformation.translate_points(ContourPoints)
                         ContourPoints = Transformation.shear_points(ContourPoints)
@@ -173,15 +163,21 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
                     filled_Contour = Transformation.FillContourArea(ContourPoints)
                 else:
                     filled_Contour = np.zeros((512,512), 'uint8')
-                    
-                #create a two channel image
-                Channel_Array = np.zeros((width,height,2), 'uint8')
-                Channel_Array[..., 0] = np.array(ImageArray)
                 
                 if(key_Dict.find("Uncropped")==-1):
-                    Channel_Array[..., 1] = filled_Contour[ imageDimensions[3]-padding: imageDimensions[2]+padding, imageDimensions[1]-padding:imageDimensions[0]+padding]
+                    ImageArray = ImageArray[imageDimensions[3]-padding: imageDimensions[2]+padding, imageDimensions[1]-padding:imageDimensions[0]+padding]
+                    filled_Contour = filled_Contour[ imageDimensions[3]-padding: imageDimensions[2]+padding, imageDimensions[1]-padding:imageDimensions[0]+padding]
+                
+                
+                if(key_Dict.find("Mask")!=-1):
+                    Channel_Array = np.zeros((width,height,1), 'uint8')
+                    Channel_Array = filled_Contour
                 else:
+                    #create a two channel image
+                    Channel_Array = np.zeros((width,height,2), 'uint8')
+                    Channel_Array[..., 0] = np.array(ImageArray)
                     Channel_Array[..., 1] = filled_Contour
+                
             
             #Label Array so that the relevant organs can be filtered
             if(isOrgan ==True):
@@ -198,48 +194,61 @@ def sort_Data(TotalImageDictionary,Organ,key_Dict,no_Classes):
     #Correct the order of the array
     OrderedImagesDictionary = collections.OrderedDict(sorted(TotalImageDictionary.items()))
     OrderedImagesArray = []
+    
     items = OrderedImagesDictionary.items()
     keys = [key for key, other in items]
     check = False
     
-    print("Number of slices:")
-    if(len(keys)!=0):
-        top = keys[-1]
-        
-        #Extract only the relevant slices 
-        for key, value in OrderedImagesDictionary.items():
-            if(key_Dict .find("Uncropped")!=-1):
-                if(abs(top-key)<175):
-                    ImageArray =value[0] 
-                    OrderedImagesArray.append(ImageArray) 
-                    if (value[1] == 1):
-                        #print(key)
-                        check=True
-                elif(len(OrderedImagesArray)==57 or len(OrderedImagesArray)==68):
-                    OrderedImagesArray.append(ImageArray)
-            else:
-                if(abs(top-key)<136):
-                    ImageArray =value[0] 
-                    OrderedImagesArray.append(ImageArray) 
-                    if (value[1] == 1):
-                        #print(key)
-                        check=True
-                elif(len(OrderedImagesArray)==68 or len(OrderedImagesArray)==68):
-                    OrderedImagesArray.append(ImageArray)
     
-    if(key_Dict .find("Uncropped")!=-1):
-        while(len(OrderedImagesArray)>69):
+    if(key_Dict.find("3D")!=-1):
+        if(key_Dict .find("Uncropped")!=-1):
+            physicalDepth = 174
+        else:
+            physicalDepth = 135
+        
+        
+        if(len(keys)!=0):
+            top = keys[-1]
+            #Extract only the relevant slices 
+            for key, value in OrderedImagesDictionary.items():
+                if(abs(top-key)<physicalDepth+1):
+                    ImageArray =value[0] 
+                    OrderedImagesArray.append(ImageArray) 
+                    if (value[1] == 1):
+                        #print(key)
+                        check=True
+        requiredNoHigh = math.floor(physicalDepth/2.5)
+        requiredNo = physicalDepth/3
+        print("Number of slices:%2i"%len(OrderedImagesArray))
+        
+        while(len(OrderedImagesArray)>requiredNoHigh):
             OrderedImagesArray.pop()
-        while(len(OrderedImagesArray) > 58 and len(OrderedImagesArray) !=69):
-            OrderedImagesArray.pop()
-    else:
-        while(len(OrderedImagesArray)>54):
-            OrderedImagesArray.pop()
-        while(len(OrderedImagesArray) > 45 and len(OrderedImagesArray) !=54):
+        while(len(OrderedImagesArray) > requiredNo and len(OrderedImagesArray) !=requiredNoHigh):
             OrderedImagesArray.pop()
             
+        print("Required:%2i"%requiredNo)
+    else:
+        if(len(keys)!=0):
+            top = keys[-1]
+            #Extract only the relevant slices 
+            for key, value in OrderedImagesDictionary.items():
+                if (value[1] == 1):
+                    ImageArray =value[0] 
+                    OrderedImagesArray.append(ImageArray) 
+                    check=True
+                    
+        #Get the middle of the organ
+        numberOfSlices = len(OrderedImagesArray)
+        middleOrganIndex = round(numberOfSlices/2)
+    
+        #Makes sure outputs are homogenous in dimensions
+        top=middleOrganIndex+2
+        bottom =middleOrganIndex-1
+        requiredNo = top-bottom
+        OrderedImagesArray = OrderedImagesArray[bottom:top]
+
     #Automate Labelling process
-    Organs = ["Right_Parotid","Right_Parotid_Aug""Left_Parotid","Brainstem","Right_Cochlea","Left_Cochlea"]
+    Organs = ["Right_Parotid","Left_Parotid","Brainstem","Right_Cochlea","Left_Cochlea"]
     label = []
     
     for i in range(no_Classes):
@@ -249,17 +258,8 @@ def sort_Data(TotalImageDictionary,Organ,key_Dict,no_Classes):
     
     label = np.array(label)
     
-    #Get the middle of the organ
-    numberOfSlices = len(OrderedImagesArray)  
-    middleOrganIndex = round(numberOfSlices/2)
-    #print(numberOfSlices)
-    
-    #Makes sure outputs are homogenous in dimensions
-    top=middleOrganIndex+2
-    bottom =middleOrganIndex-1
-    requiredNo = top-bottom
-    #[bottom:top]
-    if(numberOfSlices<=requiredNo):
+    numberOfSlices = len(OrderedImagesArray) 
+    if(numberOfSlices<requiredNo):
         #If Slice not contoured
         #print("Skipped1")
         return ["False"],"False"
@@ -314,7 +314,7 @@ def saveArray_2d(filename, arraySaveData,organ_count, key_Dict):
         f = open(stringTestingDirectory+"/TestingCount.txt", "a")
         directory_Features = TestingFeaturesDict[key_Dict]
         directory_Labels = TestingLabelsDict[key_Dict]
-    f.write(current_Time+", "+key_Dict+", "+organ_count)
+    f.write(current_Time+", "+key_Dict+", "+organ_count+"\n")
     f.close()
         
     np.save(directory_Features, np.array(XNew))
@@ -343,6 +343,9 @@ def saveArray_3d(filename, X,y,Organ, key_Dict,Patient_Name):
         XNew = np.array(X).reshape(width,height,depth,3)
     else:
         XNew = np.array(X).reshape(width,height,depth,2)
+    
+    #Normalise array
+    XNew = np.divide(XNew,255)
             
     print(np.array(X).shape)    
     #Save Data
@@ -428,17 +431,20 @@ def interpolateArray(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
         real_resize_factor = new_shape / tempArray[...,0].shape
         new_spacing = spacing / real_resize_factor
         """
-        #Interpolation of the medical image real_resize_factor
-        newArray = []
-        newArray = scipy.ndimage.interpolation.zoom(tempArray[...,0],(thickness/3,1,1) , order=0, mode='nearest')
-        shape = [s for s in np.array(newArray).shape]
-        shape.append(2)
-
-        outputArray = np.zeros(shape, "uint8")
-        outputArray[...,0] = newArray
-        
-        newArray = scipy.ndimage.interpolation.zoom(tempArray[...,1], (thickness/3,1,1), order=0, mode='nearest')
-        outputArray[...,1] = newArray
+        if(key_Dict.find("Mask")!=-1):
+            outputArray= scipy.ndimage.interpolation.zoom(tempArray,(thickness/3,1,1) , order=0, mode='nearest')
+        else:
+            #Interpolation of the medical image real_resize_factor
+            newArray = []
+            newArray = scipy.ndimage.interpolation.zoom(tempArray[...,0],(thickness/3,1,1) , order=0, mode='nearest')
+            shape = [s for s in np.array(newArray).shape]
+            shape.append(2)
+    
+            outputArray = np.zeros(shape, "uint8")
+            outputArray[...,0] = newArray
+            
+            newArray = scipy.ndimage.interpolation.zoom(tempArray[...,1], (thickness/3,1,1), order=0, mode='nearest')
+            outputArray[...,1] = newArray
         
         return np.array(outputArray, "uint8"),tempLabel
     else:
@@ -534,7 +540,7 @@ def image_preprocessing_3d(filename, start, end,key_Dict,no_Classes,structureFil
         
         np.save(TestingFeaturesDict[key_Dict]+"Patient Directories",featuresDirect)
         np.save(TestingLabelsDict[key_Dict]+"Patient Directories",labelsDirect)
-    f.write(current_Time+", "+key_Dict+", "+organ_count)
+    f.write(current_Time+", "+key_Dict+", "+organ_count+"\n")
     f.close()
 
     print("SUCCESSS!")
