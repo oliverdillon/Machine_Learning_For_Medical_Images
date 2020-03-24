@@ -63,10 +63,9 @@ class Data_Generator_3D(Sequence):
         return (np.array(BatchX),BatchY)
     
 def Predict_Data_Generator(feature_files,index):
-    while True:
-        print(feature_files[index])
-        img =np.load(feature_files[index])
-        yield np.expand_dims(img, axis = 0)
+    print(feature_files[index])
+    img =np.load(feature_files[index])
+    return np.expand_dims(img, axis = 0)
         
 ## User Guide:
 #   when fitiing to data, use model.fit_generator()
