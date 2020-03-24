@@ -62,7 +62,7 @@ class Data_Generator_3D(Sequence):
         #like return but for data generators
         return (np.array(BatchX),BatchY)
     
- def Predict_Data_Generator(feature_files,index):
+def Predict_Data_Generator(feature_files,index):
     while True:
         print(feature_files[index])
         yield [np.load(feature_files[index])]
