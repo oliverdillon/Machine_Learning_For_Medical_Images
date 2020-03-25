@@ -50,6 +50,16 @@ def translate_points(Points):
         ContourPoints.append((qx,qy))
     return ContourPoints
 
+def translate_contour(Points,x_Translation,y_Translation):
+    x, y, ox, oy = get_coordinates(Points)
+    ContourPoints = []
+    
+    for i in range(len(x)):   
+        qx = x[i] + x_Translation
+        qy = y[i] + y_Translation
+        ContourPoints.append((qx,qy))
+    return ContourPoints
+
 ########################## RESIZE ##############################
 def resize_points(Points):
     x, y, ox, oy = get_coordinates(Points)

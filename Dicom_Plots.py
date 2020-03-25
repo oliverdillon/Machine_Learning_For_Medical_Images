@@ -120,7 +120,7 @@ def Overlay_DICOM_3D_Plots(pixelSpacing,Thickness,AllCTImages,allContourImages,D
         
     overlayAxialshape  = list(img3d_Contour[:,:,index3].shape)
     overlayAxialshape.append(3)
-    overlayAxial =np.zeros(overlayAxialshape)
+    overlayAxial =np.zeros(overlayAxialshape,'uint8')
     
     overlayAxial[...,0] = img3d_CTImage[:,:,index3]
     overlayAxial[...,2] = img3d_CTImage[:,:,index3]
@@ -128,7 +128,7 @@ def Overlay_DICOM_3D_Plots(pixelSpacing,Thickness,AllCTImages,allContourImages,D
     
     overlaySagittalshape  = list(img3d_Contour[:,index2,:].shape)
     overlaySagittalshape.append(3)
-    overlaySagittal =np.zeros(overlaySagittalshape)
+    overlaySagittal =np.zeros(overlaySagittalshape,'uint8')
     
     overlaySagittal[...,0] = img3d_CTImage[:,index2,:]
     overlaySagittal[...,2] = img3d_CTImage[:,index2,:]
@@ -136,19 +136,12 @@ def Overlay_DICOM_3D_Plots(pixelSpacing,Thickness,AllCTImages,allContourImages,D
 
     overlayCoronalshape  = list((img3d_Contour[index1,:,:].T).shape)
     overlayCoronalshape.append(3)
-    overlayCoronal =np.zeros(overlayCoronalshape)
+    overlayCoronal =np.zeros(overlayCoronalshape,'uint8')
     
     overlayCoronal[...,0] = img3d_CTImage[index1,:,:].T
     overlayCoronal[...,2] = img3d_CTImage[index1,:,:].T
     overlayCoronal[...,1] = img3d_Contour[index1,:,:].T
     
-    overlayAxial = tf.keras.utils.normalize(overlayAxial, axis = 1) 
-    overlaySagittal = tf.keras.utils.normalize(overlaySagittal, axis = 1) 
-    overlayCoronal = tf.keras.utils.normalize(overlayCoronal, axis = 1) 
-    
-    overlayAxial*=5
-    overlaySagittal*=5
-    overlayCoronal*=5
     print(Directory+"Axial\\"+fig_Name+".png")
     # plot 3 orthogonal slices
     a1 = plt.subplot(111)

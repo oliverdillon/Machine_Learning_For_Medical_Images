@@ -54,7 +54,7 @@ def load_Saved_Data(pathIndex,Organ,structureFiles,PrintInfo=False):
 
 def get_First_Slice_Height(pathIndex,structureFiles):
     imagesFolders_Brainstem,imageFolderIndex_Brainstem,DicomImageSet_Brainstem,Brainstem_Data = load_Saved_Data(pathIndex,"Brainstem",structureFiles)
-    minValue = 100000
+    zValues = []
     maxValue = -100000
     for z in range(0,len(DicomImageSet_Brainstem)-1):  
        ds_Brainstem = pydicom.read_file(imagesFolders_Brainstem[imageFolderIndex_Brainstem]+DicomImageSet_Brainstem[z])
@@ -66,17 +66,16 @@ def get_First_Slice_Height(pathIndex,structureFiles):
                 loc = round(Brainstem_Data[i][j][2],num) 
                 
                 if (loc == ds_Brainstem.SliceLocation or Brainstem_Data[i][j][2] == ds_Brainstem.ImagePositionPatient[2]):
-                    if (Brainstem_Data[i][j][2]<minValue):
-                        minValue =Brainstem_Data[i][j][2]
+                    zValues.append(ds_Brainstem.SliceLocation)
                     if (Brainstem_Data[i][j][2]>maxValue):
                         maxValue =Brainstem_Data[i][j][2]
-    return maxValue,minValue
+    return maxValue,zValues
 ########################## OBTAIN CONTOURED CT IMAGES ##############################
 def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
     ##Load Data
     imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = load_Saved_Data(pathIndex,Organ,structureFiles)
     TotalImageDictionary = {}
-    maxValue, minValue = get_First_Slice_Height(pathIndex,structureFiles)
+    maxValue, zValues = get_First_Slice_Height(pathIndex,structureFiles)
 
     #Dimensions of Image
     imageDimensions = np.load("D:\HNSCC/ImageDimensions.npy", allow_pickle=True)
@@ -89,6 +88,19 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
         padding = 0
         height = imageDimensions[0] -imageDimensions[1] +padding*2
         width =imageDimensions[2]- imageDimensions[3]+padding*2
+    
+    if(Organ.find("Shift")!=-1):  
+        
+        x_Translation= random.uniform(2,5)
+        x_Translation= x_Translation*(-1)**random.randint(1,2)
+        
+        y_Translation= random.uniform(2,5)
+        y_Translation= y_Translation*(-1)**random.randint(1,2)
+        
+        zshift =random.uniform(2,5)
+        zshift= zshift*(-1)**random.randint(1,2)
+    else:
+        zshift = 0
         
     #Image manipulation   
     for z in range(0,len(DicomImageSet)-1):        
@@ -100,7 +112,7 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
         if(ds.ImagePositionPatient[2]<maxValue):
 
             #Create CT Image in the right format
-            image = dcm.GetImage()
+            image = dcm.GetImage(300,40)
             if(key_Dict.find("RGB")!=-1):
                 image = image.convert(mode ='RGB')
                 ImageArray = np.asarray(image)
@@ -123,7 +135,7 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
                     num = decimal.Decimal(num)
                     num = abs(num.as_tuple().exponent)
                     loc = round(Organ_Data[i][j][2],num) 
-                    if (loc == ds.SliceLocation or Organ_Data[i][j][2] == ds.ImagePositionPatient[2]):
+                    if (loc == ds.SliceLocation+ zshift or Organ_Data[i][j][2] == ds.ImagePositionPatient[2]+ zshift):
                         #Contouring
                         isOrgan =True
                         OrganIndex1 = int((Organ_Data[i][j][0]-ds.ImagePositionPatient[0])/ds.PixelSpacing[0])
@@ -160,6 +172,8 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
                         ContourPoints = Transformation.translate_points(ContourPoints)
                         ContourPoints = Transformation.shear_points(ContourPoints)
                         ContourPoints = Transformation.resize_points(ContourPoints)
+                    if(Organ.find("Shift")!=-1):  
+                        ContourPoints = Transformation.translate_contour(Points,x_Translation,y_Translation)
                     filled_Contour = Transformation.FillContourArea(ContourPoints)
                 else:
                     filled_Contour = np.zeros((512,512), 'uint8')
@@ -242,8 +256,12 @@ def sort_Data(TotalImageDictionary,Organ,key_Dict,no_Classes):
         middleOrganIndex = round(numberOfSlices/2)
     
         #Makes sure outputs are homogenous in dimensions
-        top=middleOrganIndex+2
-        bottom =middleOrganIndex-1
+        if (key_Dict.find("11")!=-1):
+            top=middleOrganIndex+6
+            bottom =middleOrganIndex-5
+        else:
+            top=middleOrganIndex+2
+            bottom =middleOrganIndex-1
         requiredNo = top-bottom
         OrderedImagesArray = OrderedImagesArray[bottom:top]
 
@@ -344,8 +362,6 @@ def saveArray_3d(filename, X,y,Organ, key_Dict,Patient_Name):
     else:
         XNew = np.array(X).reshape(width,height,depth,2)
     
-    #Normalise array
-    XNew = np.divide(XNew,255)
             
     print(np.array(X).shape)    
     #Save Data
