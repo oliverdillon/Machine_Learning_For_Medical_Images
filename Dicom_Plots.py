@@ -8,8 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pydicom
 import Image_Preprocessing
-import tensorflow as tf
-
+import matplotlib.animation as animation
+import Data_Dictionary
+import glob
 ########################## OBTAIN DIFFERENT SAGITTAL AND CORONAL VIEW OF IMAGES  ##############################
 def DICOM_3D_Plots(pixelSpacing,Thickness, allImages,Directory,fig_Name,index1=0,index2=0,index3=0):
     # pixel aspects, assuming all slices are the same
@@ -239,3 +240,115 @@ def check_Homogeneity(pathIndex,organ, directory,structureFiles):
         patient_name = structureFiles[pathIndex][9:22]
         plt.savefig(directory+patient_name+".png")
         plt.show()
+########################## VIDEO PLOTS ##########################
+def save_Video_Plots(structureFiles,key_Dict,directory,Organs,index1,index2):
+    no_Classes =0
+    for pathIndex in range(index1,index2):
+        for organ in Organs:
+            patient_name = structureFiles[pathIndex][9:22]
+            DicomPatient,thickness = Image_Preprocessing.get_Patient(pathIndex,organ,structureFiles,True)
+            if(thickness== 3):
+                tempArray, tempLabel =Image_Preprocessing.get_contoured_organ(pathIndex,organ,key_Dict,no_Classes,structureFiles)
+                print(len(tempArray))
+            else:
+                print("Interpolated")
+                tempArray, tempLabel =Image_Preprocessing.interpolateArray(pathIndex,organ,key_Dict,no_Classes,structureFiles)
+                print(len(tempArray))
+                
+            if(tempLabel != "False"):
+                shape =list(tempArray.shape[0:3])
+                shape.append(3)
+                fullyImage =np.zeros(shape,'uint8')
+                fullyImage[...,0] = tempArray[...,0]
+                fullyImage[...,2] = tempArray[...,0]
+                fullyImage[...,1] = tempArray[...,1]
+    
+                fig1 = plt.figure()
+                plt.title(patient_name+"_"+organ)
+                ims = []
+                for i in range(len(fullyImage)):
+                    im = plt.imshow(fullyImage[i], animated=True)
+                    ims.append([im])
+    
+                patient_name = structureFiles[pathIndex][9:22]
+                ani = animation.ArtistAnimation(fig1, ims, interval=200, blit=True,
+                                                repeat_delay=1000)
+                print(directory+organ+"/"+patient_name+".mp4")
+                if(thickness== 3):
+                    ani.save(directory+organ+"/"+patient_name+".mp4",dpi=480)
+                else:
+                    ani.save(directory+organ+"/"+patient_name+"_Interpolated.mp4",dpi=480)
+                plt.close()
+########################## INTERACTIVE PLOTS ##########################   
+def remove_keymap_conflicts(new_keys_set):
+    for prop in plt.rcParams:
+        if prop.startswith('keymap.'):
+            keys = plt.rcParams[prop]
+            remove_list = set(keys) & new_keys_set
+            for key in remove_list:
+                keys.remove(key)
+                
+def multi_slice_viewer(volume):
+    remove_keymap_conflicts({'j', 'k'})
+    fig, ax = plt.subplots()
+    ax.volume = volume
+    ax.index = volume.shape[0] // 2
+    ax.imshow(volume[ax.index])
+    fig.canvas.mpl_connect('key_press_event', process_key)
+
+def process_key(event):
+    fig = event.canvas.figure
+    ax = fig.axes[0]
+    if event.key == 'j':
+        previous_slice(ax)
+    elif event.key == 'k':
+        next_slice(ax)
+    fig.canvas.draw()
+
+def previous_slice(ax):
+    volume = ax.volume
+    ax.index = (ax.index - 1) % volume.shape[0]  # wrap around using %
+    ax.images[0].set_array(volume[ax.index])
+
+def next_slice(ax):
+    volume = ax.volume
+    ax.index = (ax.index + 1) % volume.shape[0]
+    ax.images[0].set_array(volume[ax.index])
+
+def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,Load =False):
+    no_Classes =5
+    if(Load ==False):
+        DicomPatient,thickness = Image_Preprocessing.get_Patient(pathIndex,organ,structureFiles,True)
+        if(thickness== 3):
+            tempArray, tempLabel =Image_Preprocessing.get_contoured_organ(pathIndex,organ,key_Dict,no_Classes,structureFiles)
+        else:
+            print("Interpolated")
+            tempArray, tempLabel =Image_Preprocessing.interpolateArray(pathIndex,organ,key_Dict,no_Classes,structureFiles)
+    else:
+        TrainingFeaturesDict,TrainingLabelsDict = Data_Dictionary.get_Training_Dictionary()
+        TestingFeaturesDict,TestingLabelsDict = Data_Dictionary.get_Testing_Dictionary()
+    
+        if(key_Dict.find("3D")):
+            X= glob.glob(TrainingFeaturesDict[key_Dict]+"[!P]*")
+            y= glob.glob(TrainingLabelsDict[key_Dict]+"[!P]*")
+    
+        imageDimensions = np.load("D:\HNSCC/ImageDimensions.npy", allow_pickle=True)
+    
+        padding =0
+        height = imageDimensions[3]- imageDimensions[2]
+        width = imageDimensions[1]- imageDimensions[0]
+        depth= 45
+    
+    
+        tempArray = np.load(X[pathIndex])   
+        tempArray = np.array(tempArray).reshape(depth,width,height,2)
+        
+    shape =list(tempArray.shape[0:3])
+    shape.append(3)
+    
+    fullyImage =np.zeros(shape,'uint8')
+    fullyImage[...,0] = tempArray[...,0]
+    fullyImage[...,2] = tempArray[...,0]
+    fullyImage[...,1] = tempArray[...,1]
+    
+    multi_slice_viewer(fullyImage)
