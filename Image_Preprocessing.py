@@ -8,12 +8,16 @@ from dicompylercore import dicomparser
 from PIL import Image
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 import pydicom
 import scipy.ndimage
 import collections
 import random
 import decimal
 import math
+
+from dicompylercore import util
+from numbers import Number
 
 import Data_Dictionary
 import Transformation
@@ -38,7 +42,7 @@ def load_Saved_Data(pathIndex,Organ,structureFiles,PrintInfo=False):
     if(PrintInfo): print("\n"+output_path)
     #print(structureFiles[pathIndex])
     #print(imagesFolders[k])
-    
+    Organ_Data = []
     ##Load Parotids Contours
     if (Organ.find("Right_Parotid")!=-1):
         Organ_Data = np.load(output_path+'Right_Contour_Parotids.npy', allow_pickle=True)
@@ -70,53 +74,135 @@ def get_First_Slice_Height(pathIndex,structureFiles):
                     if (Brainstem_Data[i][j][2]>maxValue):
                         maxValue =Brainstem_Data[i][j][2]
     return maxValue,zValues
+########################## MANUAL EXTRACTION ##############################
+def GetDefaultImageWindowLevel(dcm,rescaled_image,intercept,slope, window=0,level=0):     
+    
+    
+    if ('WindowWidth' in dcm.ds) and ('WindowCenter' in dcm.ds):
+        if isinstance(dcm.ds.WindowWidth, float):
+            window = dcm.ds.WindowWidth
+        elif isinstance(dcm.ds.WindowWidth, str):
+            try:
+                window = dcm.ds.WindowWidth
+            except:
+                print("image conversion error")
+        elif isinstance(dcm.ds.WindowWidth, list):
+            if (len(dcm.ds.WindowWidth) > 1):
+                window = dcm.ds.WindowWidth[1]
+        
+        if isinstance(dcm.ds.WindowCenter, float):
+            level = dcm.ds.WindowCenter
+        elif isinstance(dcm.ds.WindowCenter, str):
+            try:
+                level = dcm.ds.WindowCenter
+            except:
+                print("image conversion error")
+        elif isinstance(dcm.ds.WindowCenter, list):
+            if (len(dcm.ds.WindowCenter) > 1):
+                level = dcm.ds.WindowCenter[1]           
+    
+    if ((window, level) == (0, 0)):
+        wmax = 0
+        wmin = 0
+        if (rescaled_image.max() > wmax):
+            wmax = rescaled_image.max()
+        if (rescaled_image.min() < wmin):
+            wmin = rescaled_image.min()
+        # Default window is the range of the data array
+        window = int(wmax - wmin)
+        # Default level is the range midpoint minus the window minimum
+        level = int(window / 2 - abs(wmin))
+    return window, level
+
+def GetLUTValue(data, window, level):
+        """Apply the RGB Look-Up Table for the data and window/level value."""
+
+        lutvalue = util.piecewise(data,
+                                [data <= (level - 0.5 - (window - 1) / 2),
+                                 data > (level - 0.5 + (window - 1) / 2)],
+                                [0, 255, lambda data:
+                                 ((data - (level - 0.5)) / (window-1) + 0.5) *
+                                 (255 - 0)])
+        # Convert the resultant array to an unsigned 8-bit array to create
+        # an 8-bit grayscale LUT since the range is only from 0 to 255
+        return np.array(lutvalue, dtype=np.uint8)
+
+def manualextration(ds,dcm,pixel_array,window,level):
+        #rescale
+    intercept, slope = 0, 1
+    if ('RescaleIntercept' in ds and 'RescaleSlope' in ds):
+        intercept = ds.RescaleIntercept if \
+            isinstance(ds.RescaleIntercept, Number) else 0
+        slope = ds.RescaleSlope if \
+            isinstance(ds.RescaleSlope, Number) else 1       
+    rescaled_image = pixel_array * slope + intercept
+    
+    #finish
+    if(window == 0 and level == 0 ):
+        window, level = GetDefaultImageWindowLevel(dcm, rescaled_image,intercept,slope)
+    image = GetLUTValue(rescaled_image, window, level) ##converted to uint8
+    #im = Image.fromarray(image).convert('L')
+    
+    return image
+
+
 ########################## OBTAIN CONTOURED CT IMAGES ##############################
-def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
+def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles,flip = 0):
     ##Load Data
     imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = load_Saved_Data(pathIndex,Organ,structureFiles)
     TotalImageDictionary = {}
     maxValue, zValues = get_First_Slice_Height(pathIndex,structureFiles)
+    DicomPatient,thickness = get_Patient(pathIndex,Organ,structureFiles)
 
     #Dimensions of Image
     imageDimensions = np.load("D:\HNSCC/ImageDimensions.npy", allow_pickle=True)
-    
+    #set orgin
+    ds = pydicom.read_file(imagesFolders[imageFolderIndex]+DicomImageSet[0])
+
     #Cropping Image
     if(key_Dict.find("Uncropped")!=-1):
         height = 512 
         width = 512 
     else:
-        padding = 0
-        height = imageDimensions[0] -imageDimensions[1] +padding*2
-        width =imageDimensions[2]- imageDimensions[3]+padding*2
-    
+        padding =0
+        height = imageDimensions[3]- imageDimensions[2]
+        width = imageDimensions[1]- imageDimensions[0]
+     
     if(Organ.find("Shift")!=-1):  
-        
-        x_Translation= random.uniform(2,5)
+        x_Translation= random.randint(5,20)
         x_Translation= x_Translation*(-1)**random.randint(1,2)
         
-        y_Translation= random.uniform(2,5)
+        y_Translation= random.randint(5,20)
         y_Translation= y_Translation*(-1)**random.randint(1,2)
         
-        zshift =random.uniform(2,5)
+        zlowlimit = int(10/thickness)
+        zhighlimit = int(30/thickness)
+        zshift =random.randint(zlowlimit,zhighlimit)
         zshift= zshift*(-1)**random.randint(1,2)
+        zshift *= thickness
     else:
         zshift = 0
-        
+    if(Organ.find("Bright")!=-1):
+        xbright =random.randint(0,width)
+        ybright =random.randint(0,height)
+    isOrgan = False    
     #Image manipulation   
     for z in range(0,len(DicomImageSet)-1):        
         #Get CT Image and info
         ds = pydicom.read_file(imagesFolders[imageFolderIndex]+DicomImageSet[z])
         dcm = dicomparser.DicomParser(imagesFolders[imageFolderIndex]+DicomImageSet[z])
-        
         #Only uses CT Images below the max height of the brainstem
         if(ds.ImagePositionPatient[2]<maxValue):
 
             #Create CT Image in the right format
-            image = dcm.GetImage(300,40)
-            if(key_Dict.find("RGB")!=-1):
+            if(Organ.find("Bright")!=-1):
+                ImageArray = ds.pixel_array
+            elif(key_Dict.find("RGB")!=-1):
+                image = dcm.GetImage(300,40)
                 image = image.convert(mode ='RGB')
                 ImageArray = np.asarray(image)
             else:
+                image = dcm.GetImage(300,40)
                 image = image.convert(mode ='L')
                 ImageArray = np.asarray(image, 'uint8')
             
@@ -130,16 +216,27 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
             #Loops through contour data
             for i in range(0,len(Organ_Data)-1): 
                 for j in range(0,len(Organ_Data[i])-1):
-                    #accounts for rounding differences
-                    num = str(ds.SliceLocation)
-                    num = decimal.Decimal(num)
-                    num = abs(num.as_tuple().exponent)
-                    loc = round(Organ_Data[i][j][2],num) 
-                    if (loc == ds.SliceLocation+ zshift or Organ_Data[i][j][2] == ds.ImagePositionPatient[2]+ zshift):
+                    if(flip == 1):
+                        pos =Organ_Data[i][j][2]
+                        loc = ds.ImagePositionPatient[2]
+                    else:
+                        #accounts for rounding differences
+                        num = str(ds.SliceLocation)
+                        num = decimal.Decimal(num)
+                        num = abs(num.as_tuple().exponent)
+                        pos = round(Organ_Data[i][j][2],num) 
+                        loc = ds.SliceLocation
+                    
+                    if (pos == loc+ zshift):
+                        #maxValue-loc == maxValue-ds.SliceLocation+ zshift or
                         #Contouring
                         isOrgan =True
                         OrganIndex1 = int((Organ_Data[i][j][0]-ds.ImagePositionPatient[0])/ds.PixelSpacing[0])
                         OrganIndex2 = int((Organ_Data[i][j][1]-ds.ImagePositionPatient[1])/ds.PixelSpacing[1])
+                        if(Organ.find("Bright")!=-1):
+                            for k in range (xbright-10,xbright+10):
+                                for f in range (ybright-10,ybright+10):
+                                    ImageArray[k][f] =5000
                         
                         #Organ Contouring
                         if(key_Dict.find("RGB")!=-1):
@@ -156,13 +253,23 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
                         else:
                             #For contour mask consideration:
                             ContourPoints.append((OrganIndex1,OrganIndex2))  
-                
+                    
+            if(Organ.find("Bright")!=-1):
+                if(Organ.find("Windowed")!=-1):
+                    window =300
+                    level =40
+                else:
+                    window= 0
+                    level =0
+                ImageArray =manualextration(ds,dcm,ImageArray,window,level)
+                    
             if(key_Dict.find("RGB")!=-1):
                 #For RGB consideration:
                 if(key_Dict.find("Uncropped")!=-1):
                     Channel_Array = ImageArray
                 else:
-                    Channel_Array = ImageArray[imageDimensions[3]-padding: imageDimensions[2]+padding, imageDimensions[1]-padding:imageDimensions[0]+padding,:]
+                    Channel_Array = ImageArray[imageDimensions[0]-padding: imageDimensions[1]+padding, 
+                                                imageDimensions[2]-padding:imageDimensions[3]+padding,:]
             else:
                 #For contour consideration:
                 if(isOrgan ==True):
@@ -173,14 +280,14 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
                         ContourPoints = Transformation.shear_points(ContourPoints)
                         ContourPoints = Transformation.resize_points(ContourPoints)
                     if(Organ.find("Shift")!=-1):  
-                        ContourPoints = Transformation.translate_contour(Points,x_Translation,y_Translation)
+                        ContourPoints = Transformation.translate_contour(ContourPoints,x_Translation,y_Translation)
                     filled_Contour = Transformation.FillContourArea(ContourPoints)
                 else:
                     filled_Contour = np.zeros((512,512), 'uint8')
                 
                 if(key_Dict.find("Uncropped")==-1):
-                    ImageArray = ImageArray[imageDimensions[3]-padding: imageDimensions[2]+padding, imageDimensions[1]-padding:imageDimensions[0]+padding]
-                    filled_Contour = filled_Contour[ imageDimensions[3]-padding: imageDimensions[2]+padding, imageDimensions[1]-padding:imageDimensions[0]+padding]
+                    ImageArray = ImageArray[imageDimensions[0]: imageDimensions[1], imageDimensions[2]:imageDimensions[3]]
+                    filled_Contour = filled_Contour[ imageDimensions[0]: imageDimensions[1], imageDimensions[2]:imageDimensions[3]]
                 
                 
                 if(key_Dict.find("Mask")!=-1):
@@ -198,8 +305,12 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
                 TotalImageDictionary[ds.ImagePositionPatient[2]] = [Channel_Array,1]
             else:
                 TotalImageDictionary[ds.ImagePositionPatient[2]] = [Channel_Array,0]
-                
+    
     OrderedImagesArray,label = sort_Data(TotalImageDictionary,Organ,key_Dict,no_Classes)
+          
+    if(OrderedImagesArray ==["False"] and flip == 0):
+          OrderedImagesArray,label =get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles,1)  
+    
     return OrderedImagesArray,label
 
 ########################## SORT CT IMAGES ##############################
@@ -266,12 +377,17 @@ def sort_Data(TotalImageDictionary,Organ,key_Dict,no_Classes):
         OrderedImagesArray = OrderedImagesArray[bottom:top]
 
     #Automate Labelling process
-    Organs = ["Right_Parotid","Left_Parotid","Brainstem","Right_Cochlea","Left_Cochlea"]
+    if(key_Dict.find("Aug")!=-1):
+        Organs = ["Right_Parotid","Right_Parotid_Shift","Right_Parotid_Aug"]
+    elif(key_Dict.find("Bright")!=-1):
+        Organs = ["Right_Parotid_Bright","Null","Null"]
+    else:
+        Organs = ["Right_Parotid","Left_Parotid","Brainstem","Right_Cochlea","Left_Cochlea"]
     label = []
     
     for i in range(no_Classes):
         label.append(0)
-        if (Organ==Organs[i]):
+        if (Organ.find(Organs[i])!=-1):####################################################neeeeeeddsss changing
             label[i] =1
     
     label = np.array(label)
@@ -279,10 +395,10 @@ def sort_Data(TotalImageDictionary,Organ,key_Dict,no_Classes):
     numberOfSlices = len(OrderedImagesArray) 
     if(numberOfSlices<requiredNo):
         #If Slice not contoured
-        #print("Skipped1")
+        print("Not enough Slices")
         return ["False"],"False"
     elif(check==False):
-        #print("Skipped2")
+        print("No Contoured slices")
         return ["False"],"False"
     else:
         print(len(OrderedImagesArray))
@@ -309,9 +425,8 @@ def saveArray_2d(filename, arraySaveData,organ_count, key_Dict):
         height = 512
         width = 512 
     else:
-        padding = 0
-        height = imageDimensions[0] -imageDimensions[1] +padding*2
-        width = imageDimensions[2]- imageDimensions[3]+padding*2
+        height = imageDimensions[3]- imageDimensions[2]
+        width = imageDimensions[1]- imageDimensions[0]
     
     
     if(key_Dict.find("RGB")!=-1):
@@ -351,9 +466,8 @@ def saveArray_3d(filename, X,y,Organ, key_Dict,Patient_Name):
         width = 512  
         depth =58
     else:
-        padding = 0
-        height = imageDimensions[0] -imageDimensions[1] +padding*2
-        width = imageDimensions[2]- imageDimensions[3]+padding*2
+        height = imageDimensions[3]- imageDimensions[2]
+        width = imageDimensions[1]- imageDimensions[0]
         depth= 45
 
     
@@ -495,8 +609,14 @@ def image_preprocessing_2d(start, end,key_Dict,no_Classes,structureFiles):
     
     return neuralNetArray,organ_count
 def image_preprocessing_3d(filename, start, end,key_Dict,no_Classes,structureFiles):  
-        #Initialise arrays
-    Organs = ["Right_Parotid","Left_Parotid","Brainstem","Right_Cochlea","Left_Cochlea"] 
+    #Initialise arrays
+    if(key_Dict.find("Aug")!=-1):
+        Organs = ["Right_Parotid","Right_Parotid_Shift","Right_Parotid_Aug"]
+    elif(key_Dict.find("Bright")!=-1):
+        Organs = ["Right_Parotid_Bright_Windowed","Right_Parotid_Bright","NULL"]
+    else:
+        Organs = ["Right_Parotid","Left_Parotid","Brainstem","Right_Cochlea","Left_Cochlea"]
+        
     countDict = {}
     directories =[]
     for organ in Organs:
@@ -609,54 +729,62 @@ def save_Image_Dimensions(structureFiles,Organs =["Brainstem"]):
     for Organ in Organs:
         print(Organ)
         for pathIndex in range(0,len(structureFiles)): 
+            #Set maximal/minimal values
+            minimumExternalIndex1 = 10000000
+            maximumExternalIndex1 = -10000000
+            minimumExternalIndex2 = 10000000
+            maximumExternalIndex2 = -10000000
+            
+            #Load in Files:
+            output_path = structureFiles[pathIndex][0:23]
+            imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = load_Saved_Data(pathIndex,Organ,structureFiles)  
+            ds = pydicom.read_file(imagesFolders[imageFolderIndex]+DicomImageSet[0])
+            
+            Organ_Data = np.load(output_path+"External_Boundary_Contour.npy", allow_pickle=True)
+            if(len(Organ_Data) == 0):
+                print("Loading Ring Contour")
+                Organ_Data = np.load(output_path+"Extended_Ring_Boundary_Contour.npy", allow_pickle=True)
+
+            #Center_Data = np.load(output_path+"Isocenter_Contour.npy", allow_pickle=True)
             try:
-                #Set maximal/minimal values
-                minimumExternalIndex1 = 10000000
-                maximumExternalIndex1 = -10000000
-                minimumExternalIndex2 = 10000000
-                maximumExternalIndex2 = -10000000
-                
-                #Load in Files:
-                output_path = structureFiles[pathIndex][0:23]
-                imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = load_Saved_Data(pathIndex,Organ,structureFiles)
                 DicomImageSet = isolate_Brainstem_Images(structureFiles,pathIndex,imageFolderIndex)
-                
-                Organ_Data = np.load(output_path+"External_Boundary_Contour.npy", allow_pickle=True)
-                if(len(Organ_Data) == 0):
-                    print("Loading Ring Contour")
-                    Organ_Data = np.load(output_path+"Extended_Ring_Boundary_Contour.npy", allow_pickle=True)
                 
                 #Search through found datasets
                 for z in range(0,len(DicomImageSet)-1):
                     ds = pydicom.read_file(imagesFolders[imageFolderIndex]+DicomImageSet[z])
-        
+                    dcm = dicomparser.DicomParser(imagesFolders[imageFolderIndex]+DicomImageSet[z])
+                    
+                    image = dcm.GetImage(300,40)
+                    image = image.convert(mode ='RGB')
+                    ImageArray = np.asarray(image)
+                    ImageArray=ImageArray.copy()
+                    ImageArray.flags.writeable = 1  
                     for i in range(0,len(Organ_Data)-1): 
                         for j in range(0,len(Organ_Data[i])-1):
-                            num = str(ds.SliceLocation)
-                            num = decimal.Decimal(num)
-                            num = abs(num.as_tuple().exponent)
-                            loc = round(Organ_Data[i][j][2],num) 
-                            if (loc == ds.SliceLocation or Organ_Data[i][j][2] == ds.ImagePositionPatient[2]):
+                            
+                            if (Organ_Data[i][j][2] == ds.ImagePositionPatient[2]):
                                 #Get Relevant Coordinates
-                                ExternalIndex1 = int((Organ_Data[i][j][1]-ds.ImagePositionPatient[1])/ds.PixelSpacing[1])
                                 ExternalIndex2 = int((Organ_Data[i][j][0]-ds.ImagePositionPatient[0])/ds.PixelSpacing[0])
+                                ExternalIndex1 = int((Organ_Data[i][j][1]-ds.ImagePositionPatient[1])/ds.PixelSpacing[1])
                                 
                                 #Update maximal/minimal values
                                 if(ExternalIndex1<minimumExternalIndex1):
                                     minimumExternalIndex1 = ExternalIndex1
-                                if(ExternalIndex2<minimumExternalIndex2):
-                                    minimumExternalIndex2 = ExternalIndex2
                                 if(ExternalIndex1>maximumExternalIndex1):
                                     maximumExternalIndex1 = ExternalIndex1
+                                    
+                                if(ExternalIndex2<minimumExternalIndex2):
+                                    minimumExternalIndex2 = ExternalIndex2
                                 if(ExternalIndex2>maximumExternalIndex2):
                                     maximumExternalIndex2 = ExternalIndex2
+           
             except:
                 print("Error at index %2i"%pathIndex)                    
-            print("Top: %2.3f, Bottom: %2.3f, Left: %2.3f, Right: %2.3f"%(maximumExternalIndex2,minimumExternalIndex2,minimumExternalIndex1,maximumExternalIndex1))
+                
             #Save Values
-            dimensions = [maximumExternalIndex2,minimumExternalIndex2,minimumExternalIndex1,maximumExternalIndex1]
-            print("Top: %2.3f, Bottom: %2.3f, Left: %2.3f, Right: %2.3f"%(dimensions[0],dimensions[1],dimensions[2],dimensions[3]))
-            np.save(output_path+"ImageDimensions_"+Organ, dimensions)
+            dimensions = [minimumExternalIndex1,maximumExternalIndex1,minimumExternalIndex2,maximumExternalIndex2]
+            print("Centre Orgin: Left: %2.3f, Right: %2.3f, Bottom: %2.3f, Top: %2.3f"%(dimensions[0],dimensions[1],dimensions[2],dimensions[3]))
+            np.save(output_path+"ImageDimensions_"+Organ, dimensions)  
             
     save_Final_Image_Dimensions(structureFiles,Organs)
 def save_Final_Image_Dimensions(structureFiles,Organs):
@@ -672,17 +800,17 @@ def save_Final_Image_Dimensions(structureFiles,Organs):
             print(output_path)
             imageDimensions = np.load(output_path+"ImageDimensions_"+Organ+".npy", allow_pickle=True)
             
-            if(imageDimensions[3]>maximumExternalIndex1):
-                maximumExternalIndex1 = imageDimensions[2]
-            if(imageDimensions[2]<minimumExternalIndex1):
-                minimumExternalIndex1 = imageDimensions[3]
-            if(imageDimensions[1]<minimumExternalIndex2):
-                minimumExternalIndex2 = imageDimensions[1]
-            if(imageDimensions[0]>maximumExternalIndex2):
-                maximumExternalIndex2 = imageDimensions[0]
+            if(imageDimensions[0]<minimumExternalIndex1):
+                minimumExternalIndex1 = imageDimensions[0]
+            if(imageDimensions[1]>maximumExternalIndex1):
+                maximumExternalIndex1 = imageDimensions[1]
+            if(imageDimensions[2]<minimumExternalIndex2):
+                minimumExternalIndex2 = imageDimensions[2]
+            if(imageDimensions[3]>maximumExternalIndex2):
+                maximumExternalIndex2 = imageDimensions[3]
                 
             print(imageDimensions)
         
-    dimensions = [maximumExternalIndex2,minimumExternalIndex2,minimumExternalIndex1,maximumExternalIndex1] 
-    print("Top: %2.3f, Bottom: %2.3f, Left: %2.3f, Right: %2.3f"%(dimensions[0],dimensions[1],dimensions[2],dimensions[3]))
+    dimensions = [minimumExternalIndex1,maximumExternalIndex1,minimumExternalIndex2,maximumExternalIndex2] 
+    print("Left: %2.3f, Right: %2.3f, Bottom: %2.3f, Top: %2.3f"%(dimensions[0],dimensions[1],dimensions[2],dimensions[3]))
     np.save("D:\HNSCC/ImageDimensions", dimensions)
