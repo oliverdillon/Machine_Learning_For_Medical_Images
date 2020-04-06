@@ -53,50 +53,46 @@ def build_2D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128]):
     print(model.summary())
     return model
 
-def build_3D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128],Drop = True):
-    # Initialising the CNN
-    model = Sequential() #add each layer in turn
-
-    # First Convolutional Layer
-    model.add(Conv3D(FilterNumbers[0], (3, 3, 3), input_shape = shape, activation = 'relu'))
-    model.add(MaxPooling3D(pool_size = (2, 2, 2)))
-    
-    if(Drop):
-        model.add(Dropout(0.25))
-
-    # Second Convolutional layer
-    model.add(Conv3D(FilterNumbers[1], (3, 3, 3), activation = 'relu'))
-    model.add(MaxPooling3D(pool_size = (2, 2, 2)))
-    
-    if(Drop):
-        model.add(Dropout(0.25))
-
-    # Flattening for Dense Layer
-    model.add(Flatten())
-
-    # Full Connected "Dense" Layer
-    model.add(Dense(units = FilterNumbers[2], activation = 'relu'))
-    
-    if(Drop):
-        model.add(Dropout(0.5))
-
-    if (no_classes == 2):
-        activ = 'sigmoid'
-        loss_func = 'binary_crossentropy'
+def build_3D_model(no_classes,shape,layers = ["Conv3D","Maxpool3D","Conv3D","Maxpool3D","Dense"],lr=0.001,FilterNumbers= [32,0,64,0,128]):
+    if(len(layers)!=len(FilterNumbers)):
+        print("Number of layers must match the number of filters")
+        return None
     else:
-        activ = 'softmax'
-        loss_func = 'categorical_crossentropy'
+        # Initialising the CNN
+        model = Sequential() #add each layer in turn
+        
+        #Choose layers
+        for i,layer in enumerate(layers):
+            if(layer == "Conv3D"):
+                model.add(Conv3D(FilterNumbers[i], (3, 3, 3), input_shape = shape, activation = 'relu'))
+            if(layer == "Maxpool3D"):
+                model.add(MaxPooling3D(pool_size = (2, 2, 2)))
+            if(layer == "Dropout"):
+                #Dropout: 0.25 after maxpool? 0.5 after Dense?
+                model.add(Dropout(FilterNumbers[i]))
+            if(layer == "Dense"):
+                # Flattening for Dense Layer
+                model.add(Flatten())
+                # Full Connected "Dense" Layer
+                model.add(Dense(units = FilterNumbers[i], activation = 'relu'))     
     
-    #Output Layer
-    model.add(Dense(units = no_classes, activation = activ))
-    
-    optimize = Adam(learning_rate=lr, beta_1=0.9, beta_2=0.999, amsgrad=False)
-    
-    # Compiling the CNN
-    model.compile(optimizer = optimize, loss = loss_func, metrics = ['accuracy'])
-    
-    print(model.summary())
-    return model
+        if (no_classes == 2):
+            activ = 'sigmoid'
+            loss_func = 'binary_crossentropy'
+        else:
+            activ = 'softmax'
+            loss_func = 'categorical_crossentropy'
+        
+        #Output Layer
+        model.add(Dense(units = no_classes, activation = activ))
+        
+        optimize = Adam(learning_rate=lr, beta_1=0.9, beta_2=0.999, amsgrad=False)
+        
+        # Compiling the CNN
+        model.compile(optimizer = optimize, loss = loss_func, metrics = ['accuracy'])
+        
+        print(model.summary())
+        return model
 
 def build_segmentation_model(shape):
     no_classes = 2
@@ -129,43 +125,55 @@ def build_segmentation_model(shape):
     Conv7 = Conv2D(256, (3, 3), activation = 'relu',padding = 'same')(Maxpooling3)
     Conv8 = Conv2D(256, (3, 3), activation = 'relu',padding = 'same')(Conv7)
     Maxpooling4 = MaxPooling2D(pool_size = (2,2))(Conv8)
-
+    
+    # Fifth Convolutional layer
+    Conv9 = Conv2D(512, (3, 3), activation = 'relu',padding = 'same')(Maxpooling4)
+    Conv10 = Conv2D(512, (3, 3), activation = 'relu',padding = 'same')(Conv9)
+    Maxpooling5 = MaxPooling2D(pool_size = (2,2))(Conv10)
+    
     ######## MIDDLE ########
     # Convolutional layer
-    ConvMIDDLE1 = Conv2D(512, (3, 3), activation = 'relu',padding = 'same')(Maxpooling4)
-    ConvMIDDLE2 = Conv2D(512, (3, 3), activation = 'relu',padding = 'same')(ConvMIDDLE1)
-    UpSampling1 = Conv2DTranspose(512, (3, 3), strides=(2, 2), activation = 'relu',padding = 'same')(ConvMIDDLE2)
+    ConvMIDDLE1 = Conv2D(1024, (3, 3), activation = 'relu',padding = 'same')(Maxpooling5)
+    ConvMIDDLE2 = Conv2D(1024, (3, 3), activation = 'relu',padding = 'same')(ConvMIDDLE1)
+    UpSampling1 = Conv2DTranspose(1024, (3, 3), strides=(2, 2), activation = 'relu',padding = 'same')(ConvMIDDLE2)
 
     ######## DECODING ########
     # First Deconvolutional Layer
-    Skip1 = concatenate([UpSampling1,Conv8])#First Skip Node
+    Skip1 = concatenate([UpSampling1,Conv10])#First Skip Node
     Skip1 = Dropout(0.5)(Skip1)
-    Deconv1 = Conv2D(256, (3, 3), activation = 'relu',padding = 'same')(Skip1)
-    Deconv2 = Conv2D(256, (3, 3), activation = 'relu',padding = 'same')(Deconv1)
-    UpSampling2 = Conv2DTranspose(256, (3, 3), strides=(2, 2), activation = 'relu',padding = 'same')(Deconv2)
+    Deconv1 = Conv2D(512, (3, 3), activation = 'relu',padding = 'same')(Skip1)
+    Deconv2 = Conv2D(512, (3, 3), activation = 'relu',padding = 'same')(Deconv1)
+    UpSampling2 = Conv2DTranspose(512, (3, 3), strides=(2, 2), activation = 'relu',padding = 'same')(Deconv2)
 
     # Second Deconvolutional Layer
-    Skip2 = concatenate([UpSampling2,Conv6])#Second Skip Node
+    Skip2 = concatenate([UpSampling2,Conv8])#Second Skip Node
     Skip2 = Dropout(0.5)(Skip2)
-    Deconv3 = Conv2DTranspose(128, (3, 3), activation = 'relu',padding = 'same')(Skip2)
-    Deconv4 = Conv2DTranspose(128, (3, 3), activation = 'relu',padding = 'same')(Deconv3)
-    UpSampling3 = Conv2DTranspose(128, (3, 3), strides=(2, 2), activation = 'relu',padding = 'same')(Deconv4)
+    Deconv3 = Conv2DTranspose(256, (3, 3), activation = 'relu',padding = 'same')(Skip2)
+    Deconv4 = Conv2DTranspose(256, (3, 3), activation = 'relu',padding = 'same')(Deconv3)
+    UpSampling3 = Conv2DTranspose(256, (3, 3), strides=(2, 2), activation = 'relu',padding = 'same')(Deconv4)
 
     # Third Deconvolutional Layer
-    Skip3 = concatenate([UpSampling3,Conv4])#Third Skip Node
+    Skip3 = concatenate([UpSampling3,Conv6])#Third Skip Node
     Skip3 = Dropout(0.5)(Skip3)
-    Deconv5 = Conv2DTranspose(64, (3, 3), activation = 'relu',padding = 'same')(Skip3)
-    Deconv6 = Conv2DTranspose(64, (3, 3), activation = 'relu',padding = 'same')(Deconv5)
-    UpSampling4 = Conv2DTranspose(64, (3, 3), strides=(2, 2), activation = 'relu',padding = 'same')(Deconv6)
+    Deconv5 = Conv2DTranspose(128, (3, 3), activation = 'relu',padding = 'same')(Skip3)
+    Deconv6 = Conv2DTranspose(128, (3, 3), activation = 'relu',padding = 'same')(Deconv5)
+    UpSampling4 = Conv2DTranspose(128, (3, 3), strides=(2, 2), activation = 'relu',padding = 'same')(Deconv6)
 
     # Fourth Deconvolutional Layer
-    Skip4 = concatenate([UpSampling4,Conv2])#Fourth Skip Node
+    Skip4 = concatenate([UpSampling4,Conv4])#Third Skip Node
     Skip4 = Dropout(0.5)(Skip4)
-    Deconv10 = Conv2D(32, (3, 3), activation = 'relu',padding = 'same')(Skip4)
-    Deconv11 = Conv2D(32, (3, 3), activation = 'relu',padding = 'same')(Deconv10)
+    Deconv7 = Conv2DTranspose(64, (3, 3), activation = 'relu',padding = 'same')(Skip4)
+    Deconv8 = Conv2DTranspose(64, (3, 3), activation = 'relu',padding = 'same')(Deconv7)
+    UpSampling5 = Conv2DTranspose(64, (3, 3), strides=(2, 2), activation = 'relu',padding = 'same')(Deconv8)
+
+    # Fifth Deconvolutional Layer
+    Skip5 = concatenate([UpSampling5,Conv2])#Fourth Skip Node
+    Skip5 = Dropout(0.5)(Skip5)
+    Deconv9 = Conv2D(32, (3, 3), activation = 'relu',padding = 'same')(Skip5)
+    Deconv10 = Conv2D(32, (3, 3), activation = 'relu',padding = 'same')(Deconv9)
 
     ######## FINALISING ########
-    ConvFinal = Conv2D(no_classes+1, (1, 1), activation = 'softmax',padding = 'same')(Deconv11)
+    ConvFinal = Conv2D(no_classes+1, (1, 1), activation = 'softmax',padding = 'same')(Deconv10)
     model = Model(inputs=inputs,outputs =ConvFinal)
 
     # Compiling the CNN
@@ -178,8 +186,9 @@ def n_fold_Validation(X,y,Epoch_No,n,Model_Type):
     #n-fold cross validation
     num_val_samples =len(X)/n
     all_acc=[]
+    all_acc_history =[]
     all_loss=[]
-    all_mae_history =[]
+    all_loss_history =[]
     
     for i in range (n):
         print ("Fold:%2i"%i)
@@ -203,7 +212,8 @@ def n_fold_Validation(X,y,Epoch_No,n,Model_Type):
         loss_history = history.history['val_loss']
         accuracy_history = history.history['val_acc']
         
-        all_mae_history.append(mae_history)
+        all_acc_history.append(accuracy_history)
+        all_loss_history.append(loss_history)
         
         val_loss, val_acc = model.evaluate(val_X,val_y,verbose=0)
         all_acc.append(val_acc)
