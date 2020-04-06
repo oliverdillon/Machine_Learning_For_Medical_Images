@@ -53,7 +53,7 @@ def build_2D_model(no_classes,shape,lr=0.001,FilterNumbers= [32,64,128]):
     print(model.summary())
     return model
 
-def build_3D_model(no_classes,shape,layers = ["Conv3D","Maxpool3D","Conv3D","Maxpool3D","Dense"],lr=0.001,FilterNumbers= [32,0,64,0,128]):
+def build_3D_model(no_classes,shape,layers = ["Conv3D","Maxpool3D","Conv3D","Maxpool3D","Dense"],FilterNumbers= [32,0,64,0,128],lr=0.001):
     if(len(layers)!=len(FilterNumbers)):
         print("Number of layers must match the number of filters")
         return None
