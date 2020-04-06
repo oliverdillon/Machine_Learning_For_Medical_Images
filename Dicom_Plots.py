@@ -328,19 +328,24 @@ def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,Load =False):
         TrainingFeaturesDict,TrainingLabelsDict = Data_Dictionary.get_Training_Dictionary()
         TestingFeaturesDict,TestingLabelsDict = Data_Dictionary.get_Testing_Dictionary()
     
+        
         if(key_Dict.find("3D")):
-            X= glob.glob(TrainingFeaturesDict[key_Dict]+"[!P]*")
-            y= glob.glob(TrainingLabelsDict[key_Dict]+"[!P]*")
+            X= glob.glob(TrainingFeaturesDict[key_Dict]+"HNSCC-01-0%3i_"%pathIndex+organ+".npy")
+            print(TrainingFeaturesDict[key_Dict]+"HNSCC-01-0%3i_"%pathIndex+organ)
     
         imageDimensions = np.load("D:\HNSCC/ImageDimensions.npy", allow_pickle=True)
     
-        padding =0
-        height = imageDimensions[3]- imageDimensions[2]
-        width = imageDimensions[1]- imageDimensions[0]
-        depth= 45
+        if(key_Dict.find("Uncropped")!=-1):
+            height = 512
+            width = 512
+            depth= 58
+        else:
+            height = imageDimensions[3]- imageDimensions[2]
+            width = imageDimensions[1]- imageDimensions[0]
+            depth= 45
     
     
-        tempArray = np.load(X[pathIndex])   
+        tempArray = np.load(X[0])   
         tempArray = np.array(tempArray).reshape(depth,width,height,2)
         
     shape =list(tempArray.shape[0:3])
