@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import pydicom
 import Image_Preprocessing
 import matplotlib.animation as animation
-import Data_Dictionary
 import glob
 ########################## OBTAIN DIFFERENT SAGITTAL AND CORONAL VIEW OF IMAGES  ##############################
 def DICOM_3D_Plots(pixelSpacing,Thickness, allImages,Directory,fig_Name,index1=0,index2=0,index3=0):
