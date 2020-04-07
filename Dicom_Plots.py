@@ -315,7 +315,7 @@ def next_slice(ax):
     ax.index = (ax.index + 1) % volume.shape[0]
     ax.images[0].set_array(volume[ax.index])
 
-def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,Load =False):
+def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,TrainingFeaturesDict,Load =False):
     no_Classes =5
     if(Load ==False):
         DicomPatient,thickness = Image_Preprocessing.get_Patient(pathIndex,organ,structureFiles,True)
@@ -325,23 +325,23 @@ def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,Load =False):
             print("Interpolated")
             tempArray, tempLabel =Image_Preprocessing.interpolateArray(pathIndex,organ,key_Dict,no_Classes,structureFiles)
     else:
-        TrainingFeaturesDict,TrainingLabelsDict = Data_Dictionary.get_Training_Dictionary()
-        TestingFeaturesDict,TestingLabelsDict = Data_Dictionary.get_Testing_Dictionary()
+        #TrainingFeaturesDict,TrainingLabelsDict = Data_Dictionary.get_Training_Dictionary()
+        #TestingFeaturesDict,TestingLabelsDict = Data_Dictionary.get_Testing_Dictionary()
     
         
         if(key_Dict.find("3D")):
             X= glob.glob(TrainingFeaturesDict[key_Dict]+"HNSCC-01-0%3i_"%pathIndex+organ+".npy")
             print(TrainingFeaturesDict[key_Dict]+"HNSCC-01-0%3i_"%pathIndex+organ)
     
-        imageDimensions = np.load("D:\HNSCC/ImageDimensions.npy", allow_pickle=True)
+        #imageDimensions = np.load("D:\HNSCC/ImageDimensions.npy", allow_pickle=True)
     
         if(key_Dict.find("Uncropped")!=-1):
             height = 512
             width = 512
             depth= 58
         else:
-            height = imageDimensions[3]- imageDimensions[2]
-            width = imageDimensions[1]- imageDimensions[0]
+            height = 278#imageDimensions[3]- imageDimensions[2]
+            width = 371#imageDimensions[1]- imageDimensions[0]
             depth= 45
     
     
