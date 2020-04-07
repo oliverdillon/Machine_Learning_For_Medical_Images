@@ -19,8 +19,8 @@ import math
 from dicompylercore import util
 from numbers import Number
 
-import Data_Dictionary
-import Transformation
+from Machine_Learning_For_Medical_Images import Data_Dictionary
+from Machine_Learning_For_Medical_Images import Transformation
 from time import gmtime
 import time
 

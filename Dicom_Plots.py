@@ -7,7 +7,7 @@ Created on Wed Feb 26 13:33:34 2020
 import numpy as np
 import matplotlib.pyplot as plt
 import pydicom
-import Image_Preprocessing
+from Machine_Learning_For_Medical_Images import Image_Preprocessing
 import matplotlib.animation as animation
 import glob
 ########################## OBTAIN DIFFERENT SAGITTAL AND CORONAL VIEW OF IMAGES  ##############################
