@@ -315,7 +315,7 @@ def next_slice(ax):
     ax.index = (ax.index + 1) % volume.shape[0]
     ax.images[0].set_array(volume[ax.index])
 
-def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,TrainingFeaturesDict,Load =False):
+def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,TrainingFeaturesDict ="Empty",Load =False):
     no_Classes =5
     if(Load ==False):
         DicomPatient,thickness = Image_Preprocessing.get_Patient(pathIndex,organ,structureFiles,True)
@@ -325,6 +325,7 @@ def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,TrainingFeaturesDic
             print("Interpolated")
             tempArray, tempLabel =Image_Preprocessing.interpolateArray(pathIndex,organ,key_Dict,no_Classes,structureFiles)
     else:
+        
         #TrainingFeaturesDict,TrainingLabelsDict = Data_Dictionary.get_Training_Dictionary()
         #TestingFeaturesDict,TestingLabelsDict = Data_Dictionary.get_Testing_Dictionary()
     
