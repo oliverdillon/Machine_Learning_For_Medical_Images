@@ -7,7 +7,8 @@ Created on Wed Feb 26 13:33:34 2020
 import numpy as np
 import matplotlib.pyplot as plt
 import pydicom
-from Machine_Learning_For_Medical_Images import Image_Preprocessing
+import Image_Preprocessing
+import Data_Dictionary
 import matplotlib.animation as animation
 import glob
 ########################## OBTAIN DIFFERENT SAGITTAL AND CORONAL VIEW OF IMAGES  ##############################
@@ -240,19 +241,48 @@ def check_Homogeneity(pathIndex,organ, directory,structureFiles):
         plt.savefig(directory+patient_name+".png")
         plt.show()
 ########################## VIDEO PLOTS ##########################
-def save_Video_Plots(structureFiles,key_Dict,directory,Organs,index1,index2):
+def save_Video_Plots(structureFiles,key_Dict,directory,Organs,index1,index2,Load=True):
     no_Classes =0
+    imageDimensions = np.load("D:\HNSCC/ImageDimensions.npy", allow_pickle=True)           
+    if(key_Dict.find("Uncropped")!=-1):
+        height = 512
+        width = 512
+        depth= 58
+    else:
+        height = imageDimensions[3]- imageDimensions[2]
+        width = imageDimensions[1]- imageDimensions[0]
+        depth= 45
+    
     for pathIndex in range(index1,index2):
         for organ in Organs:
+            X =[]
+            tempArray =[]
             patient_name = structureFiles[pathIndex][9:22]
             DicomPatient,thickness = Image_Preprocessing.get_Patient(pathIndex,organ,structureFiles,True)
-            if(thickness== 3):
-                tempArray, tempLabel =Image_Preprocessing.get_contoured_organ(pathIndex,organ,key_Dict,no_Classes,structureFiles)
-                print(len(tempArray))
+            if(Load ==True):
+                if(pathIndex<len(structureFiles)-1):
+                    dataDict,_ = Data_Dictionary.get_Training_Dictionary()
+                else:
+                    dataDict,_ = Data_Dictionary.get_Testing_Dictionary()
+                X= glob.glob(dataDict[key_Dict]+"HNSCC-01-{:04d}_{name}.npy".format(pathIndex+1,name=organ))
+                
+                print(dataDict[key_Dict]+"HNSCC-01-{:04d}_{name}".format(pathIndex+1,name=organ))
+                
+                if(len(X)==0):
+                    tempLabel ="False"
+                else:
+                    tempArray = np.load(X[0])   
+                    tempArray = np.array(tempArray).reshape(depth,width,height,2)
+                    tempLabel =[""]
+                
             else:
-                print("Interpolated")
-                tempArray, tempLabel =Image_Preprocessing.interpolateArray(pathIndex,organ,key_Dict,no_Classes,structureFiles)
-                print(len(tempArray))
+                if(thickness== 3):
+                    tempArray, tempLabel =Image_Preprocessing.get_contoured_organ(pathIndex,organ,key_Dict,no_Classes,structureFiles)
+                    print(len(tempArray))
+                else:
+                    print("Interpolated")
+                    tempArray, tempLabel =Image_Preprocessing.interpolateArray(pathIndex,organ,key_Dict,no_Classes,structureFiles)
+                    print(len(tempArray))
                 
             if(tempLabel != "False"):
                 shape =list(tempArray.shape[0:3])
@@ -330,8 +360,8 @@ def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,TrainingFeaturesDic
     
         
         if(key_Dict.find("3D")):
-            X= glob.glob(TrainingFeaturesDict[key_Dict]+"HNSCC-01-0%3i_"%pathIndex+organ+".npy")
-            print(TrainingFeaturesDict[key_Dict]+"HNSCC-01-0%3i_"%pathIndex+organ)
+            X= glob.glob(TrainingFeaturesDict[key_Dict]+"HNSCC-01-{:04d}_{name}.npy".format(pathIndex+1,name=organ))
+            print(TrainingFeaturesDict[key_Dict]+"HNSCC-01-{:04d}_{name}".format(pathIndex+1,name=organ))
     
         #imageDimensions = np.load("D:\HNSCC/ImageDimensions.npy", allow_pickle=True)
     
