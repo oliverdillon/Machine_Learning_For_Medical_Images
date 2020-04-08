@@ -15,7 +15,7 @@ def get_Testing_Dictionary():
                            "Parotids11Slice":stringTestingDirectory[:30]+"/Features/2D_Parotids_2Channel_11Slice.npy",
                            "RightParotids11Slice_Aug":stringTestingDirectory[:30]+"/Features/2D_RightParotids_2Channel_11Slice_Aug.npy",
                            "2Class2Channel3D_Uncropped":stringTestingDirectory+"/Features/3D_2Class_2Channel.npy",
-                           "3Class2Channel3D_Uncropped":stringTesting3DDirectory+"/Classification/Testing/Uncropped/Testing/Features/",
+                           "3Class2Channel3D_Uncropped":stringTesting3DDirectory+"/Classification/Uncropped/Testing/Features/",
                            "3Class2Channel3D":stringTesting3DDirectory+"/Classification/Testing/Features/",
                            "3Class2Channel3D_Bright":stringTesting3DDirectory+"/Classification/Testing/Features/",
                            "3Class2Channel3D_Aug":stringTesting3DDirectory+"/Consistency/Testing/Features/",

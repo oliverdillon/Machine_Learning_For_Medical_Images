@@ -19,8 +19,8 @@ import math
 from dicompylercore import util
 from numbers import Number
 
-from Machine_Learning_For_Medical_Images import Data_Dictionary
-from Machine_Learning_For_Medical_Images import Transformation
+import Data_Dictionary
+import Transformation
 from time import gmtime
 import time
 
@@ -387,7 +387,7 @@ def sort_Data(TotalImageDictionary,Organ,key_Dict,no_Classes):
     
     for i in range(no_Classes):
         label.append(0)
-        if (Organ.find(Organs[i])!=-1):####################################################neeeeeeddsss changing
+        if (Organ==Organs[i]):
             label[i] =1
     
     label = np.array(label)
