@@ -202,7 +202,10 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles,flip 
                 image = image.convert(mode ='RGB')
                 ImageArray = np.asarray(image)
             else:
-                image = dcm.GetImage(300,40)
+                if(key_Dict.find("Not_Windowed")!=-1):
+                    image = dcm.GetImage()
+                else:
+                    image = dcm.GetImage(300,40)
                 image = image.convert(mode ='L')
                 ImageArray = np.asarray(image, 'uint8')
             

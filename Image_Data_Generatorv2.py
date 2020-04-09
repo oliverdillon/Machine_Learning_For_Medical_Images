@@ -45,7 +45,7 @@ class Data_Generator_3D(Sequence):
     def Get_Output(self,filename):    
         labels = np.genfromtxt(filename, delimiter = ',')
         print(filename)
-        return labels
+        return np.int_(labels)
        
     def Three_D_Data_Generator(self,feature_files,label_files):
         BatchX = []
