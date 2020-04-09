@@ -40,7 +40,6 @@ class Data_Generator_3D(Sequence):
         img = np.load(filename)
         print(filename)
         img = np.divide(img,255)
-        print(img.shape)
         return img
 
     def Get_Output(self,filename):    
