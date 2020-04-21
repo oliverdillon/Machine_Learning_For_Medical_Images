@@ -65,6 +65,10 @@ def build_3D_model(no_classes,shape,layers = ["Conv3D","Maxpool3D","Conv3D","Max
         for i,layer in enumerate(layers):
             if(layer == "Conv3D"):
                 model.add(Conv3D(FilterNumbers[i], (3, 3, 3), input_shape = shape, activation = 'relu'))
+            if(layer == "Conv3D4"):
+                model.add(Conv3D(FilterNumbers[i], (4, 4, 3), input_shape = shape, activation = 'relu'))
+            if(layer == "Conv3D5"):
+                model.add(Conv3D(FilterNumbers[i], (5, 5, 3), input_shape = shape, activation = 'relu'))
             if(layer == "Maxpool3D"):
                 model.add(MaxPooling3D(pool_size = (2, 2, 2)))
             if(layer == "Dropout"):
