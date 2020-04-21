@@ -63,6 +63,8 @@ def build_3D_model(no_classes,shape,layers = ["Conv3D","Maxpool3D","Conv3D","Max
         
         #Choose layers
         for i,layer in enumerate(layers):
+            if(layer == "Conv3D2"):
+                model.add(Conv3D(FilterNumbers[i], (2, 2, 2), input_shape = shape, activation = 'relu'))
             if(layer == "Conv3D"):
                 model.add(Conv3D(FilterNumbers[i], (3, 3, 3), input_shape = shape, activation = 'relu'))
             if(layer == "Conv3D4"):
