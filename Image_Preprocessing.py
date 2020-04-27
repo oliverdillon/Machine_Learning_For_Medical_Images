@@ -24,15 +24,40 @@ import Transformation
 from time import gmtime
 import time
 
+
+########################## OUTPUT FILE PATH OF INDIVIDUAL PATIENT##############################
+def getOutputPath(structureFile):
+    slashcount=0
+    output_path =""
+    for i, c in enumerate(structureFile):
+        if(c =='\\'or c =='/'):
+            slashcount+=1
+            
+        if(slashcount== 2):
+            output_path =structureFile[:i+2]
+    return output_path
+
+def getImagePath(structureFile):
+    slashcount=0
+    output_path =""
+    for i, c in enumerate(structureFile):
+        if(c =='\\'or c =='/'):
+            slashcount+=1
+            
+        if(slashcount== 3):
+            output_path =structureFile[:i+2]
+    return output_path
 ########################## LOAD FILES FOR PREPROCESSING ##############################
 def load_Saved_Data(pathIndex,Organ,structureFiles,PrintInfo=False):
     ##Load
-    output_path = structureFiles[pathIndex][0:23]   
+    output_path = getOutputPath(structureFiles[pathIndex])  
     imagesFolders = np.load('RT Simulation CT Image Folder Paths.npy')
     
     #Added this line so that the correct contour is loaded
     k = pathIndex
-    while(structureFiles[pathIndex][0:54] !=  imagesFolders[k][0:54]):
+    print(getImagePath(structureFiles[pathIndex]))
+    print(getImagePath(imagesFolders[k]))
+    while(getImagePath(structureFiles[pathIndex]) !=  getImagePath(imagesFolders[k])):
         k +=1 #match the right contour with the right image
     
     ##CT Slices
@@ -739,7 +764,7 @@ def save_Image_Dimensions(structureFiles,Organs =["Brainstem"]):
             maximumExternalIndex2 = -10000000
             
             #Load in Files:
-            output_path = structureFiles[pathIndex][0:23]
+            output_path = getOutputPath(structureFiles[pathIndex])
             imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = load_Saved_Data(pathIndex,Organ,structureFiles)  
             ds = pydicom.read_file(imagesFolders[imageFolderIndex]+DicomImageSet[0])
             
@@ -799,7 +824,7 @@ def save_Final_Image_Dimensions(structureFiles,Organs):
     for Organ in Organs:
         for pathIndex in range(0,len(structureFiles)): 
             #Dimensions of Image
-            output_path = structureFiles[pathIndex][0:23]
+            output_path = getOutputPath(structureFiles[pathIndex])
             print(output_path)
             imageDimensions = np.load(output_path+"ImageDimensions_"+Organ+".npy", allow_pickle=True)
             

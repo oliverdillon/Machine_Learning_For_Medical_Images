@@ -7,6 +7,17 @@ Created on Wed Feb 26 11:51:07 2020
 from dicompylercore import dicomparser
 import numpy as np
 
+def getOutputPath(structureFile):
+    slashcount=0
+    output_path =""
+    for i, c in enumerate(structureFile):
+        if(c =='\\'or c =='/'):
+            slashcount+=1
+            
+        if(slashcount== 2):
+            output_path =structureFile[:i+2]
+    return output_path
+
 ########################## OBTAIN AND SAVE PAROTID STRUCTURE CONTOURS ##############################
 def save_Parotid_Contours(structureFiles):
     noOfRightParotid =0
@@ -14,7 +25,7 @@ def save_Parotid_Contours(structureFiles):
     for z in range(0,len(structureFiles)):
         RTParotid = []
         LTParotid = []
-        output_path = structureFiles[z][0:23]
+        output_path = getOutputPath(structureFiles[z])
         ##Contours
         dataset = dicomparser.DicomParser(structureFiles[z])
         structures = dataset.GetStructures()
@@ -56,7 +67,7 @@ def save_Ring_Contours(structureFiles):
     noOfRings =0
     for z in range(0,len(structureFiles)):
         ring =[]
-        output_path = structureFiles[z][0:23]
+        output_path = getOutputPath(structureFiles[z])
         ##Contours
         dataset = dicomparser.DicomParser(structureFiles[z])
         structures = dataset.GetStructures()
@@ -80,7 +91,7 @@ def save_External_Contours(structureFiles):
     noOfExternal =0
     for z in range(0,len(structureFiles)):
         external =[]
-        output_path = structureFiles[z][0:23]
+        output_path = getOutputPath(structureFiles[z])
         ##Contours
         dataset = dicomparser.DicomParser(structureFiles[z])
         structures = dataset.GetStructures()
@@ -103,7 +114,7 @@ def save_Brainstem_Contours(structureFiles):
     noOfBrainstem =0
     for z in range(0,len(structureFiles)):
         Brainstem =[]
-        output_path = structureFiles[z][0:23]
+        output_path = getOutputPath(structureFiles[z])
         ##Contours
         dataset = dicomparser.DicomParser(structureFiles[z])
         structures = dataset.GetStructures()
@@ -127,7 +138,7 @@ def save_Isocentre_Contours(structureFiles):
     noOfIsocentres =0
     for z in range(0,len(structureFiles)):
         Isocentres =[]
-        output_path = structureFiles[z][0:23]
+        output_path = getOutputPath(structureFiles[z])
         ##Contours
         dataset = dicomparser.DicomParser(structureFiles[z])
         structures = dataset.GetStructures()
@@ -153,7 +164,7 @@ def save_Cochlea_Contours(structureFiles):
         
         RTCochlea = []
         LTCochlea = []
-        output_path = structureFiles[z][0:23]
+        output_path = getOutputPath(structureFiles[z])
         ##Contours
         dataset = dicomparser.DicomParser(structureFiles[z])
         structures = dataset.GetStructures()

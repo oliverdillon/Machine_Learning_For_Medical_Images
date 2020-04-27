@@ -12,6 +12,7 @@ import pydicom
 def save_globFilePaths(path):
     allRTPaths = []
     allRTPaths = glob.glob(path, recursive=True)
+    print(len(allRTPaths))
     np.save("RT Simulation Paths", allRTPaths)
 
 ########################## FILTER RT FILE PATHS AND SAVE RT STRUCTURE PATHS ##########################
@@ -22,8 +23,9 @@ def save_RTSimulationPaths(path):
         if(pydicom.dcmread(allRTPaths[i]).Modality == 'RTSTRUCT'):
             print(allRTPaths[i])
             structureFiles.append(allRTPaths[i])
-    np.save("RT Simulation Structure File Paths", structureFiles)
     print(len(structureFiles))
+    np.save("RT Simulation Structure File Paths", structureFiles)
+    
 ########################## FILTER RT FILE PATHS AND SAVE CT PATHS ##########################  
 def save_CTImagePaths(path):
     imagesFolders = []
@@ -34,8 +36,5 @@ def save_CTImagePaths(path):
             directoryOfCTImage = allRTPaths[i][0:length-10]
             print(directoryOfCTImage)
             imagesFolders.append(directoryOfCTImage)
-            
+    print(len(imagesFolders))        
     np.save("RT Simulation CT Image Folder Paths", imagesFolders)
-    print(len(imagesFolders))
-    
-    

@@ -344,8 +344,7 @@ def next_slice(ax):
     ax.index = (ax.index + 1) % volume.shape[0]
     ax.images[0].set_array(volume[ax.index])
 
-def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,TrainingFeaturesDict ="Empty",Load =False):
-    no_Classes =5
+def interactive_Plot(structureFiles,pathIndex,organ,key_Dict,TrainingFeaturesDict ="Empty",Load =False, no_Classes =3):
     if(Load ==False):
         DicomPatient,thickness = Image_Preprocessing.get_Patient(pathIndex,organ,structureFiles,True)
         if(thickness== 3):
