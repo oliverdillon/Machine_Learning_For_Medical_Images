@@ -62,7 +62,7 @@ class Data_Generator_3D(Sequence):
         BatchY = []
         
         for i,feature in enumerate(feature_files):
-            if(self.getFilePath(label_files[i]) ==self.getFilePath(feature)):
+            if(self.getFilePath(label_files[i]) !=self.getFilePath(feature)):
                 print(self.getFilePath(label_files[i]))
                 print(self.getFilePath(feature))
         
