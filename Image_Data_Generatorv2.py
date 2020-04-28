@@ -38,22 +38,33 @@ class Data_Generator_3D(Sequence):
     
     def Get_Input(self,filename):
         img = np.load(filename)
-        print(filename[-31:-4])
         img = np.divide(img,255)
         return img
 
     def Get_Output(self,filename):    
         labels = np.genfromtxt(filename, delimiter = ',')
-        print(filename[-31:-4])
         return np.int_(labels)
+    
+    def getFilePath(self,filename):
+        slashcount=0
+        output_path =""
+        for i, c in enumerate(reversed(filename)):
+            if(c =='\\'or c =='/'):
+                slashcount+=1
+                
+            if(slashcount== 0):
+                output_path =filename[-(i+1):-4]
+        
+        return output_path
        
     def Three_D_Data_Generator(self,feature_files,label_files):
         BatchX = []
         BatchY = []
-
+        
         for i,feature in enumerate(feature_files):
-            if(label_files[i][-31:-4]==feature[-31:-4]):
-                print(label_files[i][-31:-4])
+            if(self.getFilePath(label_files[i]) ==self.getFilePath(feature)):
+                print(self.getFilePath(label_files[i]))
+                print(self.getFilePath(feature))
         
         for file in feature_files:
             BatchX.append(self.Get_Input(file))
