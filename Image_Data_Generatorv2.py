@@ -74,7 +74,7 @@ class Data_Generator_3D(Sequence):
         BatchY = np.array(BatchY)
         
         
-        print(BatchX.shape)
+        #print(BatchX.shape)
         
         #like return but for data generators
         return (np.array(BatchX),BatchY)
