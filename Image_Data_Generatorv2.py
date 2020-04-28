@@ -38,24 +38,30 @@ class Data_Generator_3D(Sequence):
     
     def Get_Input(self,filename):
         img = np.load(filename)
-        print(filename)
+        print(filename[-31:-4])
         img = np.divide(img,255)
         return img
 
     def Get_Output(self,filename):    
         labels = np.genfromtxt(filename, delimiter = ',')
-        print(filename)
+        print(filename[-31:-4])
         return np.int_(labels)
        
     def Three_D_Data_Generator(self,feature_files,label_files):
         BatchX = []
         BatchY = []
+
+        for i,feature in enumerate(feature_files):
+            if(label_files[i][-31:-4]==feature[-31:-4]):
+                print(label_files[i][-31:-4])
+        
         for file in feature_files:
             BatchX.append(self.Get_Input(file))
         for file in label_files:
             BatchY.append(self.Get_Output(file))
         BatchX = np.array(BatchX)
         BatchY = np.array(BatchY)
+        
         
         print(BatchX.shape)
         
