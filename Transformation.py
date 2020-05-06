@@ -33,7 +33,7 @@ def rotate_around_point(Points):
         ContourPoints.append((qx,qy))
         
     return ContourPoints
-########################## TRANSLATION ##############################
+########################## BULK TRANSLATION ##############################
 def translate_points(Points):
     x, y, ox, oy = get_coordinates(Points)
     ContourPoints = []
@@ -49,7 +49,7 @@ def translate_points(Points):
         qy = y[i] + y_Translation
         ContourPoints.append((qx,qy))
     return ContourPoints
-
+########################## TRANSLATION of CONTOURS on a Slice ##############################
 def translate_contour(Points,x_Translation,y_Translation):
     x, y, ox, oy = get_coordinates(Points)
     ContourPoints = []
@@ -59,7 +59,32 @@ def translate_contour(Points,x_Translation,y_Translation):
         qy = y[i] + y_Translation
         ContourPoints.append((qx,qy))
     return ContourPoints
-
+########################## TRANSLATION of a  proportion of CONTOURS on a Slice ##############################
+def MoveRandomPoints(Points,Percentage):
+    x, y, ox, oy = get_coordinates(Points)
+    ContourPoints =[]
+    indices = []
+    i = 0
+    NumberOfPoints =len(x)
+    
+    while (i<NumberOfPoints*Percentage):
+        randomIndex = random.randint(0,NumberOfPoints-1)
+        randomcluster = random.randint(randomIndex+1,NumberOfPoints)
+        for k in range(randomIndex,randomcluster):
+            if not (k in indices):
+                indices.append(k)
+                i=i+1
+    for j in indices:        
+        x_Translation= random.uniform(2,5)*(-1)**random.randint(1,2)
+        y_Translation= random.uniform(2,5)*(-1)**random.randint(1,2)
+        
+        x[j] = x[j] + x_Translation
+        y[j] = y[j] + y_Translation
+    
+    for i in range(len(x)):  
+        ContourPoints.append((x[i],y[i]))
+        
+    return ContourPoints
 ########################## RESIZE ##############################
 def resize_points(Points):
     x, y, ox, oy = get_coordinates(Points)
@@ -113,6 +138,7 @@ def shear_points(Points):
             ContourPoints.append((qx,qy))
     
     return ContourPoints
+
 ########################## OBTAIN CONTOURED CT IMAGES ##############################
 def FillContourArea(Vertices):
         '''
