@@ -56,10 +56,9 @@ def load_Saved_Data(pathIndex,Organ,structureFiles,PrintInfo=False):
     #Added this line so that the correct contour is loaded
     k = pathIndex
     print(getImagePath(structureFiles[pathIndex]))
-    print(getImagePath(imagesFolders[k]))
     while(getImagePath(structureFiles[pathIndex]) !=  getImagePath(imagesFolders[k])):
         k +=1 #match the right contour with the right image
-    
+    print(getImagePath(imagesFolders[k]))
     ##CT Slices
     DicomImageSet = os.listdir(imagesFolders[k])
     
@@ -256,7 +255,7 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles,flip 
                         loc = ds.SliceLocation
                     
                     if (pos == loc+ zshift):
-                        #maxValue-loc == maxValue-ds.SliceLocation+ zshift or
+                        #maxValue-ds.SliceLocation+ zshift or
                         #Contouring
                         isOrgan =True
                         OrganIndex1 = int((Organ_Data[i][j][0]-ds.ImagePositionPatient[0])/ds.PixelSpacing[0])
@@ -283,12 +282,12 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles,flip 
                             ContourPoints.append((OrganIndex1,OrganIndex2))  
                     
             if(Organ.find("Bright")!=-1):
-                if(Organ.find("Windowed")!=-1):
-                    window =300
-                    level =40
-                else:
-                    window= 0
+                if(key_Dict.find("Not_Windowed")!=-1):
+                    window =0
                     level =0
+                else:
+                    window= 300
+                    level =40
                 ImageArray =manualextration(ds,dcm,ImageArray,window,level)
                     
             if(key_Dict.find("RGB")!=-1):
@@ -309,6 +308,8 @@ def get_contoured_organ(pathIndex,Organ,key_Dict,no_Classes,structureFiles,flip 
                         ContourPoints = Transformation.resize_points(ContourPoints)
                     if(Organ.find("Shift")!=-1):  
                         ContourPoints = Transformation.translate_contour(ContourPoints,x_Translation,y_Translation)
+                    if(Organ.find("Translate")!=-1):
+                        ContourPoints =Transformation.MoveRandomPoints(ContourPoints,0.1)
                     filled_Contour = Transformation.FillContourArea(ContourPoints)
                 else:
                     filled_Contour = np.zeros((512,512), 'uint8')
@@ -406,9 +407,9 @@ def sort_Data(TotalImageDictionary,Organ,key_Dict,no_Classes):
 
     #Automate Labelling process
     if(key_Dict.find("Aug")!=-1):
-        Organs = ["Right_Parotid","Right_Parotid_Shift","Right_Parotid_Aug"]
+        Organs = ["Right_Parotid","Right_Parotid_Shift","Right_Parotid_Aug","Right_Parotid_Translate"]
     elif(key_Dict.find("Bright")!=-1):
-        Organs = ["Right_Parotid_Bright","Null","Null"]
+        Organs = ["Right_Parotid_Bright","Left_Parotid_Bright","Brainstem_Bright"]
     else:
         Organs = ["Right_Parotid","Left_Parotid","Brainstem","Right_Cochlea","Left_Cochlea"]
     label = []
@@ -527,23 +528,18 @@ def get_Patient(pathIndex,Organ,structureFiles,PrintInfo=False):
     slices = [pydicom.read_file(image) for image in images_in_Folder]
     slices.sort(key = lambda x: float(x.ImagePositionPatient[2]))
     
-    
     #Get CT Image and info
     DicomPatient = slices[0]
-    #DicomPatient = pydicom.read_file(imagesFolders[imageFolderIndex]+DicomImageSet[z])
-    #DicomParserPatient = dicomparser.DicomParser(imagesFolders[imageFolderIndex]+DicomImageSet[z])
     thicknesses = []
+    
     for i in range(len(slices)-1):
         thicknesses.append( slices[1].ImagePositionPatient[2] -slices[0].ImagePositionPatient[2])
     thickness = np.mean(thicknesses)
-    if(PrintInfo): print("Thickness 1: %3.3f"%thickness)
     if(slices[0].SliceThickness!=""):
-        print("Thickness 2: %3.3f"%slices[0].SliceThickness)
-        
+
         if (thickness+0.25> slices[0].SliceThickness and thickness-0.25<slices[0].SliceThickness):
             thickness = slices[0].SliceThickness
     if(thickness%0.25):
-        if(PrintInfo): print("Thickness 3: %3.3f"%thickness)
         #rounding method
         temp = thickness
         count = 0
@@ -551,19 +547,18 @@ def get_Patient(pathIndex,Organ,structureFiles,PrintInfo=False):
             temp-=0.25
             count+=1
         check = count*0.25
-        if(PrintInfo): print("check 3: %3.3f"%check)
+
         if(thickness-check>0.125):
             thickness =check+0.25
         elif(thickness-check<-0.125):
             thickness =check-0.25
         else:
             thickness =check
-                
-            
-        if(PrintInfo): print("Thickness 3: %3.3f"%thickness)
+    
         if(thickness%0.25):
             thickness = math.trunc(thickness)
-            if(PrintInfo): print("Thickness 4: %3.3f"%thickness)
+            
+    if(PrintInfo): print("Thickness: %3.3f"%thickness)
     return DicomPatient,thickness
 def interpolateArray(pathIndex,Organ,key_Dict,no_Classes,structureFiles):
    
@@ -620,7 +615,7 @@ def image_preprocessing_2d(start, end,key_Dict,no_Classes,structureFiles):
     for pathIndex in range(start,end):
         for j in range(no_Classes):
             tempArray, tempLabel =get_contoured_organ(pathIndex,Organs[j],key_Dict,no_Classes,structureFiles)
-            if(tempLabel!="False" and len(tempArray) ==100):
+            if(tempLabel!="False"):
                 for i in range(0,len(tempArray)):
                     neuralNetArray.append([tempArray[i],tempLabel])
                     countDict[Organs[j]] +=1
@@ -639,9 +634,9 @@ def image_preprocessing_2d(start, end,key_Dict,no_Classes,structureFiles):
 def image_preprocessing_3d(filename, start, end,key_Dict,no_Classes,structureFiles):  
     #Initialise arrays
     if(key_Dict.find("Aug")!=-1):
-        Organs = ["Right_Parotid","Right_Parotid_Shift","Right_Parotid_Aug"]
+        Organs = ["Right_Parotid","Right_Parotid_Shift","Right_Parotid_Aug","Right_Parotid_Translate"]
     elif(key_Dict.find("Bright")!=-1):
-        Organs = ["Right_Parotid_Bright_Windowed","Right_Parotid_Bright","NULL"]
+        Organs = ["Right_Parotid_Bright","Left_Parotid_Bright","Brainstem_Bright"]
     else:
         Organs = ["Right_Parotid","Left_Parotid","Brainstem","Right_Cochlea","Left_Cochlea"]
         
