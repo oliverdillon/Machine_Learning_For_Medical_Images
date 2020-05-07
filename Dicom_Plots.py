@@ -11,6 +11,8 @@ import Image_Preprocessing
 import Data_Dictionary
 import matplotlib.animation as animation
 import glob
+from dicompylercore import dicomparser
+import scipy.ndimage
 ########################## OBTAIN DIFFERENT SAGITTAL AND CORONAL VIEW OF IMAGES  ##############################
 def DICOM_3D_Plots(pixelSpacing,Thickness, allImages,Directory,fig_Name,index1=0,index2=0,index3=0):
     # pixel aspects, assuming all slices are the same
@@ -73,6 +75,92 @@ def DICOM_3D_Plots(pixelSpacing,Thickness, allImages,Directory,fig_Name,index1=0
     
     return index1,index2,index3
 
+def plotFull_CTImage(structureFiles,pathIndex,pixelSpacing,Thickness,Organ,Directory,fig_Name,interpolate=False,Norder=0):
+    ps = pixelSpacing
+    ss = Thickness
+    ax_aspect = ps[1]/ps[0]
+    sag_aspect = ps[1]/ss
+    cor_aspect = ss/ps[0]
+    
+    imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = Image_Preprocessing.load_Saved_Data(pathIndex,Organ,structureFiles)
+    images_in_Folder = [imagesFolders[imageFolderIndex] + image for image in DicomImageSet]
+    
+    DicomPatient,thickness =Image_Preprocessing.get_Patient(pathIndex,Organ,structureFiles)
+
+    slices = [dicomparser.DicomParser(image) for image in images_in_Folder]
+    slices.sort(key = lambda x: float(x.ds.ImagePositionPatient[2]))
+    
+    img_shape = list([512,512])
+    img_shape.append(66)#len(slices)
+    img3d_CTImage=np.zeros(img_shape,"uint8")
+    print(len(slices))
+    k =0
+    for i in range(-85,-20):
+        k+=1
+        img3d_CTImage[:,:,k] = slices[i].GetImage()
+    
+    print("Original No.: ")
+    print(img3d_CTImage.shape)
+    print("Thickness: %2.2f"%thickness)
+    
+    if(interpolate==True):
+        # Determine current pixel spacing
+        new_spacing=[1,1,1]
+        spacing_list = [thickness]
+        spacing_list.extend(DicomPatient.PixelSpacing)
+        spacing = np.array(spacing_list, dtype=np.float32)
+    
+        #Calculate resize factor for interpolation
+        resize_factor = spacing / new_spacing
+        new_real_shape = img3d_CTImage.shape * resize_factor
+        new_shape = np.round(new_real_shape)
+        real_resize_factor = new_shape / img3d_CTImage.shape
+        new_spacing = spacing / real_resize_factor
+        
+        
+        print("Order: %2i"%Norder)
+        img3d_CTImageNew=[]
+        img3d_CTImageNew= scipy.ndimage.interpolation.zoom(img3d_CTImage,(1,1,thickness/3),order=3, mode='nearest')
+    else:
+        img3d_CTImageNew =img3d_CTImage
+    print("New No.:")
+    print(img3d_CTImageNew.shape)
+    
+    index1 =img3d_CTImageNew.shape[0]//2
+    index2 =img3d_CTImageNew.shape[1]//2
+    index3 =img3d_CTImageNew.shape[2]//2
+    overlayAxial = img3d_CTImageNew[:,:,index3]
+    overlaySagittal = img3d_CTImageNew[:,index2,:]
+    overlayCoronal = img3d_CTImageNew[index1,:,:].T
+    
+
+    a1 = plt.subplot(111)
+    plt.imshow(overlayAxial, cmap='gray')
+    a1.set_aspect(ax_aspect)
+    plt.title(fig_Name+"_Axial")
+    if(interpolate==True and thickness!=3 or interpolate==False):
+        plt.savefig(Directory+"Axial\\"+fig_Name+".png",dpi=480)
+    plt.show()
+    
+    a2 = plt.subplot(111)
+    plt.imshow(overlaySagittal, cmap='gray')
+    a2.set_aspect(sag_aspect)
+    plt.title(fig_Name+"_Sagittal")
+    if(interpolate==True and thickness!=3 or interpolate==False):
+        plt.savefig(Directory+"Sagittal\\"+fig_Name+".png",dpi=480)
+    plt.show()
+    
+    a3 = plt.subplot(111)
+    plt.imshow(overlayCoronal, cmap='gray')
+    a3.set_aspect(cor_aspect)
+    plt.title(fig_Name+"_Coronal")
+    if(interpolate==True and thickness!=3 or interpolate==False):
+        plt.savefig(Directory+"Coronal\\"+fig_Name+".png",dpi=480)
+    plt.show()
+    
+    
+    return img3d_CTImageNew
+
 def Overlay_DICOM_3D_Plots(pixelSpacing,Thickness,AllCTImages,allContourImages,Directory,fig_Name):
     # pixel aspects, assuming all slices are the same
     ps = pixelSpacing
@@ -98,21 +186,17 @@ def Overlay_DICOM_3D_Plots(pixelSpacing,Thickness,AllCTImages,allContourImages,D
     index2 = 0
     index3 = 0
     
-    while(np.sum(img3d_Contour[:,:,index3])==0):
+    while(np.sum(img3d_Contour[:,:,index3])==0 or np.sum(img3d_Contour[:,:,index3])<np.sum(img3d_Contour[:,:,index3+1])):
         index3+=1
-    while(np.sum(img3d_Contour[:,index2,:])==0):
+    while(np.sum(img3d_Contour[:,index2,:])==0 or np.sum(img3d_Contour[:,index2,:])<np.sum(img3d_Contour[:,index2+1,:])):
         index2+=1
-    while(np.sum(img3d_Contour[index1,:,:])==0):
+    while(np.sum(img3d_Contour[index1,:,:])==0 or np.sum(img3d_Contour[index1,:,:])<np.sum(img3d_Contour[index1+1,:,:])):
         index1+=1
-    index3+=4
-    index2+=4
-    index1+=4
-    while(np.sum(img3d_Contour[:,:,index3])==0):
-        index3-=1
-    while(np.sum(img3d_Contour[:,index2,:])==0):
-        index2-=1
-    while(np.sum(img3d_Contour[index1,:,:])==0):
-        index1-=1
+    
+    index1=191
+    print("Coronal Index:")
+    print(index1)
+    
     
     if(fig_Name.find("Middle")!=-1):
         index1 =img3d_Contour.shape[0]//2
@@ -148,64 +232,59 @@ def Overlay_DICOM_3D_Plots(pixelSpacing,Thickness,AllCTImages,allContourImages,D
     a1 = plt.subplot(111)
     plt.imshow(overlayAxial)
     a1.set_aspect(ax_aspect)
-    plt.title("Axial_"+fig_Name)
+    plt.title(fig_Name+"_Axial")
     plt.savefig(Directory+"Axial\\"+fig_Name+".png",dpi=480)
-    plt.show()
+    plt.close()
     
     a2 = plt.subplot(111)
     plt.imshow(overlaySagittal)
     a2.set_aspect(sag_aspect)
-    plt.title("Sagittal_"+fig_Name)
+    plt.title(fig_Name+"_Sagittal")
     plt.savefig(Directory+"Sagittal\\"+fig_Name+".png",dpi=480)
-    plt.show()
+    plt.close()
     
     a3 = plt.subplot(111)
     plt.imshow(overlayCoronal)
     a3.set_aspect(cor_aspect)
-    plt.title("Coronal_"+fig_Name)
+    plt.title(fig_Name+"_Coronal")
     plt.savefig(Directory+"Coronal\\"+fig_Name+".png",dpi=480)
-    plt.show()
+    plt.close()
+    
+    #plt.close()
     
 ########################## CT DATA DISPLAY ##############################  
 def plot_CT_Image_Histograms(stringImageDirectory,structureFiles):
-    stringImageDirectory ="C:/Users/Oliver/Documents/University/Year 4/MPhys Project/Images/"
     allheight =[]
     allThickness =[]
     allNoSlices =[]
 
     for pathIndex in range(len(structureFiles)):
         Organ = "Right_Parotid"
-
-        imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = Image_Preprocessing.load_Saved_Data(pathIndex,Organ)
+        DicomPatient,thickness = Image_Preprocessing.get_Patient(pathIndex,Organ,structureFiles)
+        imagesFolders,imageFolderIndex,DicomImageSet,Organ_Data = Image_Preprocessing.load_Saved_Data(pathIndex,Organ,structureFiles)
         images_in_Folder = [imagesFolders[imageFolderIndex] + image for image in DicomImageSet]
         slices = [pydicom.read_file(image) for image in images_in_Folder]
         slices.sort(key = lambda x: float(x.ImagePositionPatient[2]))
-        thickness = slices[0].SliceThickness
 
-        if (thickness == ""):
-            thickness =  slices[0].SliceLocation - slices[1].SliceLocation
-
-        thic =np.abs(thickness)
         height = slices[0].SliceLocation - slices[-1].SliceLocation
 
-        if (thic ==3):
-            allheight.append(np.abs(height))
-            allThickness.append(np.abs(thickness))
-            allNoSlices.append(len(slices))
+        allheight.append(np.abs(height))
+        allThickness.append(np.abs(thickness))
+        allNoSlices.append(len(slices))
 
     plt.hist(allheight)
     plt.title("Height of Scans")
-    plt.savefig(stringImageDirectory+"Height of Scans_Just 3mm.png")
+    plt.savefig(stringImageDirectory+"Height of Scans.png")
     plt.show()
 
     plt.hist(allThickness)
     plt.title("Thickness of Scans")
-    plt.savefig(stringImageDirectory+"Thickness of Scans_Just 3mm.png")
+    plt.savefig(stringImageDirectory+"Thickness of Scans.png")
     plt.show()
 
     plt.hist(allNoSlices)
     plt.title("No of Slices")
-    plt.savefig(stringImageDirectory+"No of Slices_Just 3mm.png")
+    plt.savefig(stringImageDirectory+"No of Slices.png")
     plt.show() 
 
 ################################# PLOT CROPPED GRAPHS #################################
