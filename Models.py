@@ -78,7 +78,7 @@ def build_3D_model(no_classes,shape,layers = ["Conv3D","Maxpool3D","Conv3D","Max
             if(layer == "Maxpool3D"):
                 model.add(MaxPooling3D(pool_size = (2, 2, 2)))
             if(layer == "Maxpool3D3"):
-                model.add(MaxPooling3D(pool_size = (3, 3, 3)))
+                model.add(MaxPooling3D(pool_size = (3, 3, 2)))
             if(layer == "Dropout"):
                 #Dropout: 0.25 after maxpool? 0.5 after Dense?
                 model.add(Dropout(FilterNumbers[i]))
