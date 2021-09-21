@@ -6,6 +6,7 @@ from models.ctimage import CTImage
 class Series():
     def __init__(self,row):
         self.series_uid = row.get("Series UID")
+        self.subject_ID= row.get("Subject ID")
         self.collection = row.get("Collection")
         self.study_description = row.get("Study Description")
         self.study_date = row.get("Study Date")
@@ -38,6 +39,7 @@ class Series():
                     if "brainstem" in name:
                         exluded_terms = ["ex","2","cm","mm","pv"]
                         included_terms = ["brainstem","brain stem"]
+
                         self.extract_organ(index,dataset,contour_data,names,name,"Brainstem",exluded_terms,included_terms)
 
                     if "parotid" in name or "prtd" in name:
