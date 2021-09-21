@@ -1,6 +1,5 @@
 import csv
-from series import Series
-from os import path
+from models.series import Series
 
 class Dataset:
     def __init__(self,manifest_dir):
@@ -13,8 +12,3 @@ class Dataset:
             for row in reader:
                 manifest.append(Series(row));
         return manifest;
-
-
-
-
-x = Dataset("C:/Users/Oliver/Desktop/manifest-1631990109317/metadata.csv")
