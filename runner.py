@@ -1,4 +1,6 @@
-from models.dataset import Dataset
+from processors.overlay_contours_on_images import Overlay_contours_on_images
+from processors.extract_dataset import Extract_dataset
 import os
 
-x = Dataset(os.getcwd()+"/metadata.csv")
+Extract_dataset = Extract_dataset(os.getcwd()+"/metadata.csv")
+filtered_dataset = Overlay_contours_on_images(Extract_dataset.dataset)
