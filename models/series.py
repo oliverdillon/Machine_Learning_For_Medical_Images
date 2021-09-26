@@ -14,6 +14,7 @@ class Series():
         self.number_of_images = row.get("Number of Images")
         self.file_location = row.get("File Location")
         self.medical_images = self.extract_ct_images();
+        self.contoured_medical_images = [];
         self.contours_data, self.organs = self.extract_contour_data();
 
     def extract_ct_images(self):
@@ -66,7 +67,7 @@ class Series():
                         exluded_terms = ["final","lao","boost"]
                         included_terms = ["mark"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"External Boundary",exluded_terms,included_terms)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Isocenter",exluded_terms,included_terms)
 
                     if "cochlea" in name:
                         exluded_terms = ["sub","total","def","sup","deep","gy","avoid","ptv","push","tail"]
