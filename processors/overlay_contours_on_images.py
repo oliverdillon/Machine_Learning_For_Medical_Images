@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
+from pathlib import Path
 import numpy as np
+import math
 from models.training_data import Training_data
 from models.testing_data import Testing_data
 class Overlay_contours_on_images:
@@ -7,6 +9,7 @@ class Overlay_contours_on_images:
         self.allowed_organs = ["Right Parotid","Left Parotid"]
         self.ct_image_window = 300
         self.ct_image_level = 40
+        self.image_width = self.image_height = 512
         self.filter_date =""
         self.dataset = dataset
         self.training_data = Training_data()
@@ -80,25 +83,47 @@ class Overlay_contours_on_images:
     def get_training_data(self):
         data = self.dataset.data
         total = len(data)
-        testing_threshold = 0.6*total
+        testing_threshold = math.floor(0.6*total)
 
         for count, patient in enumerate(data):
             Organ_Dictionary = patient.series[0].contours_data
             Organ_Map = patient.series[0].organs
             ct_images = patient.series[1].medical_images
 
+            if(count >= testing_threshold):
+                directory = "target/training/"+patient.series[0].subject_ID
+                Path(directory).mkdir(parents=True, exist_ok=True)
+                ct_image_directory = directory+"/features.npy"
+                label_directory = directory+"/labels.txt"
+                self.training_data.dataset.append(ct_image_directory)
+                self.training_data.labels.append(label_directory)
+            else:
+                directory = "target/testing/"+patient.series[0].subject_ID
+                Path(directory).mkdir(parents=True, exist_ok=True)
+                ct_image_directory = directory+"/features.npy"
+                label_directory = directory+"/labels.txt"
+                self.testing_data.dataset.append(ct_image_directory)
+                self.testing_data.labels.append(label_directory)
+
+            patient_contours = []
+            patient_labels = []
             for key, value in Organ_Map.items():
                 if value in self.allowed_organs:
                     ct_image_3d= []
                     label = self.get_label(value)
-
                     for ct_image in ct_images:
                         ImageArray = self.overlay_contours(ct_image,Organ_Dictionary[key])
                         ct_image_3d.append(ImageArray)
-                    if(count > testing_threshold):
-                        self.testing_data.dataset.append(ct_image_3d)
-                        self.testing_data.labels.append(label)
-                    else:
-                        self.training_data.dataset.append(ct_image_3d)
-                        self.training_data.labels.append(label)
-                    self.plot_ct_image(ct_image_3d)
+                    # self.plot_ct_image(ct_image_3d)
+                    patient_contours.append(np.array(ct_image_3d))
+                    patient_labels.append(label)
+            if len(self.testing_data.dataset)!= 0:
+                np.save(ct_image_directory, np.array(patient_contours))
+                np.savetxt(label_directory, np.array(patient_labels), delimiter=",")
+
+        if len(self.testing_data.dataset)!= 0:
+            np.savetxt("target/Training_features.txt", self.training_data.dataset, delimiter=",", fmt="%s")
+            np.savetxt("target/Training_labels.txt", self.training_data.labels, delimiter=",", fmt="%s")
+        if len(self.testing_data.dataset)!= 0:
+            np.savetxt("target/Testing_features.txt", self.testing_data.dataset, delimiter=",", fmt="%s")
+            np.savetxt("target/Testing_labels.txt", self.testing_data.labels, delimiter=",", fmt="%s")
