@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
 import math
@@ -57,13 +56,6 @@ class Overlay_contours_on_images:
                     OrganIndex2 = int((Organ_Data[i][j][1]-pydicom.ImagePositionPatient[1])/pydicom.PixelSpacing[1])
                     ImageArray[OrganIndex2][OrganIndex1][2] = 255;
 
-    def plot_ct_image(self, ct_image_3d):
-        ct_image_3d =np.array(ct_image_3d,'uint8')
-        overlaySagittalshape  = list(ct_image_3d[:,200,:,:].shape)
-        overlaySagittal = ct_image_3d[:,200,:,:]
-        plt.imshow(overlaySagittal)
-        plt.close()
-
     def get_label(self,value):
         label = []
         for count, organ in enumerate(self.allowed_organs):
@@ -80,6 +72,14 @@ class Overlay_contours_on_images:
         self.write_contour_to_image(organ,ImageArray,ct_image.pydicom)
         return ImageArray
 
+    def create_directories(self,directory, features_array, labels_array):
+        Path(directory).mkdir(parents=True, exist_ok=True)
+        ct_image_directory = directory+"/features.npy"
+        label_directory = directory+"/labels.txt"
+        features_array.append(ct_image_directory)
+        labels_array.append(label_directory)
+        return ct_image_directory,label_directory
+
     def get_training_data(self):
         data = self.dataset.data
         total = len(data)
@@ -92,18 +92,10 @@ class Overlay_contours_on_images:
 
             if(count >= testing_threshold):
                 directory = "target/training/"+patient.series[0].subject_ID
-                Path(directory).mkdir(parents=True, exist_ok=True)
-                ct_image_directory = directory+"/features.npy"
-                label_directory = directory+"/labels.txt"
-                self.training_data.dataset.append(ct_image_directory)
-                self.training_data.labels.append(label_directory)
+                ct_image_directory,label_directory = self.create_directories(directory, self.training_data.dataset, self.training_data.labels)
             else:
                 directory = "target/testing/"+patient.series[0].subject_ID
-                Path(directory).mkdir(parents=True, exist_ok=True)
-                ct_image_directory = directory+"/features.npy"
-                label_directory = directory+"/labels.txt"
-                self.testing_data.dataset.append(ct_image_directory)
-                self.testing_data.labels.append(label_directory)
+                ct_image_directory,label_directory = self.create_directories(directory, self.testing_data.dataset, self.testing_data.labels)
 
             patient_contours = []
             patient_labels = []
@@ -117,7 +109,7 @@ class Overlay_contours_on_images:
                     # self.plot_ct_image(ct_image_3d)
                     patient_contours.append(np.array(ct_image_3d))
                     patient_labels.append(label)
-            if len(self.testing_data.dataset)!= 0:
+            if len(patient_contours)!= 0:
                 np.save(ct_image_directory, np.array(patient_contours))
                 np.savetxt(label_directory, np.array(patient_labels), delimiter=",")
 
