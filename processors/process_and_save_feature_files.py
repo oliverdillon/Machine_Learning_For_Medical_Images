@@ -3,13 +3,13 @@ import numpy as np
 import math
 from models.training_data import Training_data
 from models.testing_data import Testing_data
-class Overlay_contours_on_images:
+class Process_and_save_feature_files:
     def __init__(self,dataset):
         self.allowed_organs = ["Right Parotid","Left Parotid"]
         self.ct_image_window = 300
         self.ct_image_level = 40
         self.image_width = self.image_height = 512
-        self.filter_date =""
+        self.filter_date = None
         self.dataset = dataset
         self.training_data = Training_data()
         self.testing_data = Testing_data()
