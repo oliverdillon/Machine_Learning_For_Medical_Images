@@ -9,36 +9,46 @@ class Extract_dataset:
     def __init__(self,manifest_dir, batch_size):
         self.dataset =None
         self.manifest_dir = manifest_dir
-        self.sort_csv_file()
+        self.batch_size = batch_size
         self.extract_dataset()
 
-    def sort_csv_file(self):
+    def convert_list_to_dict(self,list):
+        dict =[]
+        keys = list.pop(0)
+        for row in list:
+            dict.append({keys[i]:row[i]  for i in range(0, len(row))})
+        list.insert(0,keys)
+        return dict
+
+    def extract_dataset(self):
+        print("Extracting Dataset")
+        data = []
+        patient_id_state=""
+        count = 1
         reader = csv.reader(open(self.manifest_dir))
         sortedlist = sorted(reader, key=operator.itemgetter(4), reverse=True)
+        sortedDict = self.convert_list_to_dict(sortedlist)
+
+        while count <= self.batch_size+1:
+            sortedlist.pop()
+            row = sortedDict.pop()
+            series = Series(row)
+            if (count==1):
+                patient = Patient(row)
+                patient_id_state=patient.subject_ID
+                count+=1
+            elif(patient_id_state!=series.subject_ID):
+                patient = Patient(row)
+                patient_id_state=series.subject_ID
+            if(patient_id_state != sortedDict[len(sortedDict)-1]["Subject ID"]):
+                print("Extracted Data for "+patient.subject_ID)
+                data.append(patient)
+                count+=1
+            patient.series.append(series)
+
+        self.dataset = Dataset(self.manifest_dir,data)
+
         with open(self.manifest_dir, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             for line in sortedlist:
                 writer.writerow(line)
-
-    def extract_dataset(self):
-        print("Extracting Dataset")
-        data = [];
-        with open(self.manifest_dir, newline='') as csvfile:
-            #TODO sort csv by patient id
-            reader = csv.DictReader(csvfile)
-            patient_id_state=""
-            for count, row in enumerate(reader):
-                series = Series(row)
-                if (count==0):
-                    patient = Patient(row)
-                    patient_id_state=patient.subject_ID
-                elif(patient_id_state!=series.subject_ID):
-                    #TODO save
-                    print("Extracted Data for "+patient.subject_ID)
-                    data.append(patient);
-                    patient = Patient(row)
-                    patient_id_state=series.subject_ID
-                patient.series.append(series)
-            print("Extracted Data for "+patient.subject_ID)
-            data.append(patient);
-        self.dataset = Dataset(self.manifest_dir,data)
