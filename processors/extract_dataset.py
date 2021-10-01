@@ -29,7 +29,7 @@ class Extract_dataset:
         sortedlist = sorted(reader, key=operator.itemgetter(4), reverse=True)
         sortedDict = self.convert_list_to_dict(sortedlist)
 
-        while count <= self.batch_size+1:
+        while count <= self.batch_size+1 and len(sortedDict)>1:
             sortedlist.pop()
             row = sortedDict.pop()
             series = Series(row)

@@ -1,18 +1,16 @@
 from pathlib import Path
 import numpy as np
 import math
-from models.training_data import Training_data
-from models.testing_data import Testing_data
+from models.processed_data import Processed_data
 class Process_and_save_feature_files:
     def __init__(self,dataset):
-        self.allowed_organs = ["Right Parotid","Left Parotid"]
+        self.allowed_organs = ["Right_Parotid","Left_Parotid"]
         self.ct_image_window = 300
         self.ct_image_level = 40
         self.image_width = self.image_height = 512
         self.filter_date = None
         self.dataset = dataset
-        self.training_data = Training_data()
-        self.testing_data = Testing_data()
+        self.processed_data = Processed_data()
         self.filter_patient_data()
         self.get_training_data()
 
@@ -72,33 +70,24 @@ class Process_and_save_feature_files:
         self.write_contour_to_image(organ,ImageArray,ct_image.pydicom)
         return ImageArray
 
-    def create_directories(self,directory, features_array, labels_array):
+    def create_directories(self,directory):
         Path(directory).mkdir(parents=True, exist_ok=True)
-        ct_image_directory = directory+"/features.npy"
-        label_directory = directory+"/labels.txt"
-        features_array.append(ct_image_directory)
-        labels_array.append(label_directory)
+        ct_image_directory = directory+"/{}_feature.npy"
+        label_directory = directory+"/{}_label.txt"
         return ct_image_directory,label_directory
 
     def get_training_data(self):
         data = self.dataset.data
-        total = len(data)
-        testing_threshold = math.floor(0.6*total)
 
         for count, patient in enumerate(data):
             Organ_Dictionary = patient.series[0].contours_data
             Organ_Map = patient.series[0].organs
             ct_images = patient.series[1].medical_images
+            subject_ID = patient.series[0].subject_ID
+            print ("Saving for "+subject_ID)
+            directory = "target/"+subject_ID
+            ct_image_directory,label_directory = self.create_directories(directory)
 
-            if(count >= testing_threshold):
-                directory = "target/training/"+patient.series[0].subject_ID
-                ct_image_directory,label_directory = self.create_directories(directory, self.training_data.dataset, self.training_data.labels)
-            else:
-                directory = "target/testing/"+patient.series[0].subject_ID
-                ct_image_directory,label_directory = self.create_directories(directory, self.testing_data.dataset, self.testing_data.labels)
-
-            patient_contours = []
-            patient_labels = []
             for key, value in Organ_Map.items():
                 if value in self.allowed_organs:
                     ct_image_3d= []
@@ -106,16 +95,11 @@ class Process_and_save_feature_files:
                     for ct_image in ct_images:
                         ImageArray = self.overlay_contours(ct_image,Organ_Dictionary[key])
                         ct_image_3d.append(ImageArray)
-                    # self.plot_ct_image(ct_image_3d)
-                    patient_contours.append(np.array(ct_image_3d))
-                    patient_labels.append(label)
-            if len(patient_contours)!= 0:
-                np.save(ct_image_directory, np.array(patient_contours))
-                np.savetxt(label_directory, np.array(patient_labels), delimiter=",")
+                    np.save(ct_image_directory.format(value), np.array(ct_image_3d))
+                    np.savetxt(label_directory.format(value), np.array(label), delimiter=",")
+                    self.processed_data.features.append(ct_image_directory.format(value))
+                    self.processed_data.labels.append(label_directory.format(value))
 
-        if len(self.testing_data.dataset)!= 0:
-            np.savetxt("target/Training_features.txt", self.training_data.dataset, delimiter=",", fmt="%s")
-            np.savetxt("target/Training_labels.txt", self.training_data.labels, delimiter=",", fmt="%s")
-        if len(self.testing_data.dataset)!= 0:
-            np.savetxt("target/Testing_features.txt", self.testing_data.dataset, delimiter=",", fmt="%s")
-            np.savetxt("target/Testing_labels.txt", self.testing_data.labels, delimiter=",", fmt="%s")
+        if len(self.processed_data.features)!= 0:
+            np.savetxt("target/features.txt", self.processed_data.features, delimiter=",", fmt="%s")
+            np.savetxt("target/labels.txt", self.processed_data.labels, delimiter=",", fmt="%s")

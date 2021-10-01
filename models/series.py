@@ -48,20 +48,20 @@ class Series():
                         included_terms_right = ["rt","r "," r","right"]
                         included_terms_left = ["lt","l "," l","left"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"Right Parotid",exluded_terms,included_terms_right)
-                        self.extract_organ(index,dataset,contour_data,names,name,"Left Parotid",exluded_terms,included_terms_left)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Right_Parotid",exluded_terms,included_terms_right)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Left_Parotid",exluded_terms,included_terms_left)
 
                     if "ring" in name:
                         exluded_terms = ["inner","ext"]
                         included_terms = ["ring"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"Ring Boundary",exluded_terms,included_terms)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Ring_Boundary",exluded_terms,included_terms)
 
                     if "external" in name:
                         exluded_terms = []
                         included_terms = ["external"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"External Boundary",exluded_terms,included_terms)
+                        self.extract_organ(index,dataset,contour_data,names,name,"External_Boundary",exluded_terms,included_terms)
 
                     if "iso" in name:
                         exluded_terms = ["final","lao","boost"]
@@ -74,8 +74,8 @@ class Series():
                         included_terms_right = ["rt","r "," r","right"]
                         included_terms_left = ["lt","l "," l","left"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"Right Cochlea",exluded_terms,included_terms_right)
-                        self.extract_organ(index,dataset,contour_data,names,name,"Left Cochlea",exluded_terms,included_terms_left)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Right_Cochlea",exluded_terms,included_terms_right)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Left_Cochlea",exluded_terms,included_terms_left)
                 except:
                     print("Error at Index %2i"%index)
 
