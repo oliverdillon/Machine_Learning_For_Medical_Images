@@ -105,18 +105,24 @@ class Process_and_save_feature_files:
             directory = "target/"+subject_ID
             ct_image_directory,label_directory = self.create_directories(directory)
 
+            #loop through organ contours
             for key, value in Organ_Map.items():
                 if value in self.allowed_organs:
                     ct_image_3d= []
                     label = self.get_label(value)
+
+                    #build 3d image
                     for ct_image in ct_images:
                         ImageArray = self.overlay_contours(ct_image,Organ_Dictionary[key])
                         ct_image_3d.append(ImageArray)
+
+                    #save matrix files
                     np.save(ct_image_directory.format(value), np.array(ct_image_3d))
                     np.savetxt(label_directory.format(value), np.array(label), delimiter=",")
                     self.processed_data.features.append(ct_image_directory.format(value))
                     self.processed_data.labels.append(label_directory.format(value))
 
+        #Save paths to files
         if len(self.processed_data.features)!= 0:
             np.savetxt("target/features.txt", self.processed_data.features, delimiter=",", fmt="%s")
             np.savetxt("target/labels.txt", self.processed_data.labels, delimiter=",", fmt="%s")

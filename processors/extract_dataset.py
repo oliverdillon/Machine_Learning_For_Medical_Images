@@ -34,13 +34,22 @@ class Extract_dataset:
             row = sortedDict.pop()
             series = Series(row)
             if (count==1):
+                #declare first patient in file
                 patient = Patient(row)
                 patient_id_state=patient.subject_ID
                 count+=1
             elif(patient_id_state!=series.subject_ID):
+                #declare next patient
                 patient = Patient(row)
                 patient_id_state=series.subject_ID
-            if(patient_id_state != sortedDict[len(sortedDict)-1]["Subject ID"]):
+
+            if(len(sortedDict)==0):
+                #add last patient in file
+                print("Extracted Data for "+patient.subject_ID)
+                data.append(patient)
+                count+=1
+            elif(patient_id_state != sortedDict[len(sortedDict)-1]["Subject ID"]):
+                #add next patient
                 print("Extracted Data for "+patient.subject_ID)
                 data.append(patient)
                 count+=1
