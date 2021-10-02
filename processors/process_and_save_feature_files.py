@@ -1,6 +1,6 @@
 from pathlib import Path
 import numpy as np
-import math
+from PIL import Image, ImageDraw
 from models.processed_data import Processed_data
 class Process_and_save_feature_files:
     def __init__(self,dataset):
@@ -46,13 +46,15 @@ class Process_and_save_feature_files:
 
             patient.series = series_filtered
 
-    def write_contour_to_image(self,Organ_Data,ImageArray,pydicom):
+    def write_contour_to_image(self,Organ_Data,pydicom):
+        countour_points = []
         for i in range(0,len(Organ_Data)-1):
             for j in range(0,len(Organ_Data[i])-1):
                 if(Organ_Data[i][j][2] ==pydicom.ImagePositionPatient[2]):
                     OrganIndex1 = int((Organ_Data[i][j][0]-pydicom.ImagePositionPatient[0])/pydicom.PixelSpacing[0])
                     OrganIndex2 = int((Organ_Data[i][j][1]-pydicom.ImagePositionPatient[1])/pydicom.PixelSpacing[1])
-                    ImageArray[OrganIndex2][OrganIndex1][2] = 255;
+                    countour_points.append((OrganIndex1,OrganIndex2))
+        return countour_points
 
     def get_label(self,value):
         label = []
@@ -62,12 +64,27 @@ class Process_and_save_feature_files:
                 label[count] =1
         return label
 
+    def fill_contour_area(self,Vertices):
+        # http://stackoverflow.com/a/3732128/1410871
+        img = Image.new(mode='L', size=(self.image_width,self.image_height), color=0)
+        ImageDraw.Draw(img).polygon(xy=Vertices, outline=0, fill=1)
+        #img = img.transpose(Image.ROTATE_90)
+        mask = np.array(img).astype(bool)
+
+        return np.uint8(mask)*255
+
     def overlay_contours(self,ct_image,organ):
         image = ct_image.dicomparser.GetImage(self.ct_image_window,self.ct_image_level)
         image = image.convert(mode ='RGB')
         ImageArray = np.asarray(image)
         ImageArray.flags.writeable = 1
-        self.write_contour_to_image(organ,ImageArray,ct_image.pydicom)
+        contour_points = self.write_contour_to_image(organ,ct_image.pydicom)
+
+        if len(contour_points)!= 0:
+            ImageArray[..., 1] = self.fill_contour_area(contour_points)
+        else:
+            ImageArray[..., 1] = np.zeros(ImageArray[..., 1].shape)
+
         return ImageArray
 
     def create_directories(self,directory):
