@@ -2,12 +2,15 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 from models.processed_data import Processed_data
+import scipy.ndimage
 class Process_and_save_feature_files:
     def __init__(self,dataset):
         self.allowed_organs = ["Right_Parotid","Left_Parotid"]
         self.ct_image_window = 300
         self.ct_image_level = 40
         self.image_width = self.image_height = 512
+        self.new_spacing = 3
+        self.desired_matrix_length = 36
         self.filter_date = None
         self.dataset = dataset
         self.processed_data = Processed_data()
@@ -46,11 +49,11 @@ class Process_and_save_feature_files:
 
             patient.series = series_filtered
 
-    def write_contour_to_image(self,Organ_Data,pydicom):
+    def write_contour_to_image(self,Organ_Data,pydicom, reverse_factor):
         countour_points = []
         for i in range(0,len(Organ_Data)-1):
             for j in range(0,len(Organ_Data[i])-1):
-                if(Organ_Data[i][j][2] ==pydicom.ImagePositionPatient[2]):
+                if(round(Organ_Data[i][j][2],1) ==round(reverse_factor*pydicom.ImagePositionPatient[2],1)):
                     OrganIndex1 = int((Organ_Data[i][j][0]-pydicom.ImagePositionPatient[0])/pydicom.PixelSpacing[0])
                     OrganIndex2 = int((Organ_Data[i][j][1]-pydicom.ImagePositionPatient[1])/pydicom.PixelSpacing[1])
                     countour_points.append((OrganIndex1,OrganIndex2))
@@ -73,12 +76,12 @@ class Process_and_save_feature_files:
 
         return np.uint8(mask)*255
 
-    def overlay_contours(self,ct_image,organ):
+    def overlay_contours(self,ct_image,organ, reverse_factor):
         image = ct_image.dicomparser.GetImage(self.ct_image_window,self.ct_image_level)
         image = image.convert(mode ='RGB')
         ImageArray = np.asarray(image)
         ImageArray.flags.writeable = 1
-        contour_points = self.write_contour_to_image(organ,ct_image.pydicom)
+        contour_points = self.write_contour_to_image(organ,ct_image.pydicom,reverse_factor)
 
         if len(contour_points)!= 0:
             ImageArray[..., 1] = self.fill_contour_area(contour_points)
@@ -86,6 +89,64 @@ class Process_and_save_feature_files:
             ImageArray[..., 1] = np.zeros(ImageArray[..., 1].shape)
 
         return ImageArray
+
+    def average_thickness(self, positions):
+        array1 = positions[:-1]
+        array2 = positions[1:]
+        array3 = np.subtract(array1,array2)
+        return abs(round(np.mean(array3),1))
+
+    def normalise_3d_image(self,ct_image_3d_dict):
+        ct_image_3d = []
+        z_locations = []
+
+        #Correct the order of the array
+        # ct_image_3d_dict = collections.OrderedDict(sorted(ct_image_3d_dict.items()))
+
+        for key, value in ct_image_3d_dict.items():
+            z_locations.append(key)
+            ct_image_3d.append(value)
+
+        thickness = self.average_thickness(z_locations)
+        resize_factor = self.new_spacing/thickness
+
+        new_ct_image_3d = scipy.ndimage.interpolation.zoom(ct_image_3d,(resize_factor,1,1,1), order=0, mode='nearest')
+
+        while len(new_ct_image_3d) >  self.desired_matrix_length:
+            new_ct_image_3d = new_ct_image_3d[:-1]
+
+        return new_ct_image_3d
+
+    def get_min_max_z_coordinate(self,organ_data,ct_images,max_z_location,min_z_location,reverse_factor):
+        z_diff = 0
+        for ct_image in ct_images:
+            z_location = ct_image.pydicom.ImagePositionPatient[2]
+            for i in range(0,len(organ_data)-1):
+                for j in range(0,len(organ_data[i])-1):
+                    if(round(organ_data[i][j][2],1) == round(reverse_factor*z_location,1)):
+                        if (abs(z_diff) < abs(z_location-min_z_location)):
+                            z_diff = z_location-min_z_location
+                            max_z_location = z_location
+
+        return min_z_location, max_z_location
+
+    def get_z_range(self,organ_dictionary,organ_map,ct_images):
+        organ_data = organ_dictionary[organ_map["Brainstem"]]
+        isocenter_data = organ_dictionary[organ_map["Isocenter"]]
+        min_z_location = isocenter_data[0][0][2]
+        max_z_location = None
+        reverse_factor = 1
+        min_z_location, max_z_location = self.get_min_max_z_coordinate(organ_data,ct_images,max_z_location,min_z_location,reverse_factor)
+
+        if (max_z_location == None):
+            #TODO Check if this is needed
+            reverse_factor = -1
+            min_z_location, max_z_location = self.get_min_max_z_coordinate(organ_data,ct_images,max_z_location,min_z_location,reverse_factor)
+
+        if (max_z_location == None):
+            return
+        else:
+            return min_z_location, max_z_location, reverse_factor
 
     def create_directories(self,directory):
         Path(directory).mkdir(parents=True, exist_ok=True)
@@ -97,30 +158,37 @@ class Process_and_save_feature_files:
         data = self.dataset.data
 
         for count, patient in enumerate(data):
-            Organ_Dictionary = patient.series[0].contours_data
-            Organ_Map = patient.series[0].organs
+            organ_dictionary = patient.series[0].contours_data
+            organ_map = patient.series[0].organs
             ct_images = patient.series[1].medical_images
             subject_ID = patient.series[0].subject_ID
             print ("Saving for "+subject_ID)
             directory = "target/"+subject_ID
             ct_image_directory,label_directory = self.create_directories(directory)
 
+            min_z_location, max_z_location, reverse_factor = self.get_z_range(organ_dictionary,organ_map,ct_images)
+
             #loop through organ contours
-            for key, value in Organ_Map.items():
-                if value in self.allowed_organs:
-                    ct_image_3d= []
-                    label = self.get_label(value)
+            for key, value  in organ_map.items():
+                if key in self.allowed_organs:
+                    ct_image_3d_dict= {}
+                    label = self.get_label(key)
 
                     #build 3d image
                     for ct_image in ct_images:
-                        ImageArray = self.overlay_contours(ct_image,Organ_Dictionary[key])
-                        ct_image_3d.append(ImageArray)
+                        z_location = ct_image.pydicom.ImagePositionPatient[2]
+
+                        if(min_z_location<z_location<max_z_location):
+                            ImageArray = self.overlay_contours(ct_image,organ_dictionary[value],reverse_factor)
+                            ct_image_3d_dict[z_location] = ImageArray
+
+                    ct_image_3d = self.normalise_3d_image(ct_image_3d_dict)
 
                     #save matrix files
-                    np.save(ct_image_directory.format(value), np.array(ct_image_3d))
-                    np.savetxt(label_directory.format(value), np.array(label), delimiter=",")
-                    self.processed_data.features.append(ct_image_directory.format(value))
-                    self.processed_data.labels.append(label_directory.format(value))
+                    np.save(ct_image_directory.format(key), np.array(ct_image_3d))
+                    np.savetxt(label_directory.format(key), np.array(label), delimiter=",")
+                    self.processed_data.features.append(ct_image_directory.format(key))
+                    self.processed_data.labels.append(label_directory.format(key))
 
         #Save paths to files
         if len(self.processed_data.features)!= 0:

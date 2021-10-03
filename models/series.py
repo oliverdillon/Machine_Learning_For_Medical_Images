@@ -37,7 +37,7 @@ class Series():
                 try:
                     name = str(structures[index]['name']).lower()
 
-                    if "brainstem" in name:
+                    if "brain" in name:
                         exluded_terms = ["ex","2","cm","mm","pv"]
                         included_terms = ["brainstem","brain stem"]
 
@@ -65,7 +65,7 @@ class Series():
 
                     if "iso" in name:
                         exluded_terms = ["final","lao","boost"]
-                        included_terms = ["mark"]
+                        included_terms = ["iso"]
 
                         self.extract_organ(index,dataset,contour_data,names,name,"Isocenter",exluded_terms,included_terms)
 
@@ -90,5 +90,5 @@ class Series():
             StructureCoordDicts.append(dataset.GetStructureCoordinates(index))
             for j in list(StructureCoordDicts[0]): #iterate through the dictionary i get in line 14
                 data.append(StructureCoordDicts[0][j][0]['data']) #pull out only the matrix of xyz values
-            names[name] = standardised_name
+            names[standardised_name] = name
             contour_data[name] = data
