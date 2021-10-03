@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 from models.processed_data import Processed_data
 import scipy.ndimage
+import csv
 class Process_and_save_feature_files:
     def __init__(self,dataset):
         self.allowed_organs = ["Right_Parotid","Left_Parotid"]
@@ -192,5 +193,21 @@ class Process_and_save_feature_files:
 
         #Save paths to files
         if len(self.processed_data.features)!= 0:
-            np.savetxt("target/features.txt", self.processed_data.features, delimiter=",", fmt="%s")
-            np.savetxt("target/labels.txt", self.processed_data.labels, delimiter=",", fmt="%s")
+            features_filename = "target/features.txt"
+            labels_filename = "target/labels.txt"
+            try:
+                with open(features_filename, 'r') as csvfile:
+                    feature_reader = csv.reader(csvfile)
+                    for directory in feature_reader:
+                        self.processed_data.features.append(directory[0])
+
+                with open(labels_filename, 'r') as csvfile:
+                    labels_reader = csv.reader(csvfile)
+                    for directory in labels_reader:
+                        self.processed_data.labels.append(directory[0])
+            except:
+                print("Error opening directories file")
+
+
+            np.savetxt(features_filename, self.processed_data.features, delimiter=",", fmt="%s")
+            np.savetxt(labels_filename, self.processed_data.labels, delimiter=",", fmt="%s")
