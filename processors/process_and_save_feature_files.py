@@ -7,6 +7,7 @@ import csv
 class Process_and_save_feature_files:
     def __init__(self,dataset):
         self.allowed_organs = ["Right_Parotid","Left_Parotid"]
+        self.required_contours = ["Right_Parotid","Left_Parotid","Isocenter", "Brainstem"]
         self.ct_image_window = 300
         self.ct_image_level = 40
         self.image_width = self.image_height = 512
@@ -163,6 +164,11 @@ class Process_and_save_feature_files:
             organ_map = patient.series[0].organs
             ct_images = patient.series[1].medical_images
             subject_ID = patient.series[0].subject_ID
+
+            if any(required_contour not in organ_map.keys() for required_contour in self.required_contours):
+                print("Patient "+subject_ID+" did not have all the necessary contours")
+                continue
+
             print ("Saving for "+subject_ID)
             directory = "target/"+subject_ID
             ct_image_directory,label_directory = self.create_directories(directory)

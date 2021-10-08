@@ -63,9 +63,9 @@ class Series():
 
                         self.extract_organ(index,dataset,contour_data,names,name,"External_Boundary",exluded_terms,included_terms)
 
-                    if "iso" in name:
+                    if "iso" in name or "mark" in name:
                         exluded_terms = ["final","lao","boost"]
-                        included_terms = ["iso"]
+                        included_terms = ["iso", "mark"]
 
                         self.extract_organ(index,dataset,contour_data,names,name,"Isocenter",exluded_terms,included_terms)
 
