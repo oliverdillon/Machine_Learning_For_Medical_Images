@@ -3,7 +3,7 @@ from processors.extract_dataset import Extract_dataset
 import os
 class Batch_save_feature_files:
     def __init__(self):
-        self.patient_batch_size= 1
+        self.patient_batch_size= 2
         self.extract_save_files()
 
     def extract_save_files(self):

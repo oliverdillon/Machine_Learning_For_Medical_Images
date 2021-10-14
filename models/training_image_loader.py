@@ -17,20 +17,20 @@ class Training_image_loader(Sequence):
 
         batch_Paths_X = self.x[batch_index1:batch_index2]
         batch_Paths_y = self.y[batch_index1:batch_index2]
-        batch_x, batch_y = self.Three_D_Data_Generator(batch_Paths_X,batch_Paths_y)
+        batch_x, batch_y = self.get_training_data(batch_Paths_X,batch_Paths_y)
 
         return np.array(batch_x), np.array(batch_y)
 
-    def Get_Input(self,filename):
+    def get_input(self, filename):
         img = np.load(filename)
         img = np.divide(img,255)
         return img
 
-    def Get_Output(self,filename):
+    def get_output(self, filename):
         labels = np.genfromtxt(filename, delimiter = ',')
         return np.int_(labels)
 
-    def getFilePath(self,filename):
+    def get_file_path(self, filename):
         slashcount=0
         output_path =""
         for i, c in enumerate(reversed(filename)):
@@ -58,20 +58,20 @@ class Training_image_loader(Sequence):
         BatchY = []
 
         for i,feature in enumerate(feature_files):
-            if(self.getFilePath(label_files[i]) !=self.getFilePath(feature)):
-                print(self.getFilePath(label_files[i]))
-                print(self.getFilePath(feature))
+            if(self.get_file_path(label_files[i]) !=self.get_file_path(feature)):
+                print(self.get_file_path(label_files[i]))
+                print(self.get_file_path(feature))
 
         for file in feature_files:
-            BatchX.append(self.Get_Input(file))
+            BatchX.append(self.get_input(file))
         for file in label_files:
-            BatchY.append(self.Get_Output(file))
+            BatchY.append(self.get_output(file))
         BatchX = np.array(BatchX)
         BatchY = np.array(BatchY)
 
         return (np.array(BatchX),BatchY)
 
-def Predict_Data_Generator(feature_files,index):
+def get_data_for_model_prediction(feature_files, index):
     print(feature_files[index])
     img =np.load(feature_files[index])
     return np.expand_dims(img, axis = 0)

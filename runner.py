@@ -2,7 +2,7 @@ from processors.batch_save_feature_files import Batch_save_feature_files
 from processors.plot_medical_images import Plot_medical_images
 # from processors.train_neural_networks import Train_neural_network
 count = 0
-while count< 7:
+while count< 3:
     batch = Batch_save_feature_files()
     count +=1
 # run = Plot_medical_images()

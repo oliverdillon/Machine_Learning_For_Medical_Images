@@ -7,7 +7,6 @@ Created on Wed Feb 26 12:33:11 2020
 import random
 import math
 import numpy as np
-import cv2
 from PIL import Image, ImageDraw
 ########################## SPLIT X/Y AND GET ORGINS ##############################
 def get_coordinates(Points):
@@ -141,14 +140,6 @@ def shear_points(Points):
 
 ########################## OBTAIN CONTOURED CT IMAGES ##############################
 def FillContourArea(Vertices):
-        '''
-        FilledImage = np.zeros((512,512))
-        Vertices = np.asarray(Vertices).reshape(-1,1,2)
-        cv2.fillPoly(FilledImage, [Vertices], color = (255,0,255))
-        return np.uint8(FilledImage)
-        
-        skimage.draw.polygon2mask(image_shape,polygon)
-        '''
         # http://stackoverflow.com/a/3732128/1410871
         img = Image.new(mode='L', size=(512, 512), color=0)
         ImageDraw.Draw(img).polygon(xy=Vertices, outline=0, fill=1)
