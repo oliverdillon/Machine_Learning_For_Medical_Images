@@ -33,62 +33,62 @@ class Series():
             dataset = dicomparser.DicomParser(images_directories[0])
             structures = dataset.GetStructures()
 
-            for index in range(1,len(structures)): #to strip out the parotids
+            for index in range(1,len(structures)):
                 try:
                     name = str(structures[index]['name']).lower()
 
                     if "brain" in name:
-                        exluded_terms = ["ex","2","cm","mm","pv"]
+                        excluded_terms = ["ex","2","cm","mm","pv"]
                         included_terms = ["brainstem","brain stem"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"Brainstem",exluded_terms,included_terms)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Brainstem",excluded_terms,included_terms)
 
                     if "parotid" in name or "prtd" in name:
-                        exluded_terms = ["sub","total","def","sup","deep","gy","avoid","ptv","push","tail"]
+                        excluded_terms = ["sub","total","def","sup","deep","gy","avoid","ptv","push","tail"]
                         included_terms_right = ["rt","r "," r","right"]
                         included_terms_left = ["lt","l "," l","left"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"Right_Parotid",exluded_terms,included_terms_right)
-                        self.extract_organ(index,dataset,contour_data,names,name,"Left_Parotid",exluded_terms,included_terms_left)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Right_Parotid",excluded_terms,included_terms_right)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Left_Parotid",excluded_terms,included_terms_left)
 
                     if "ring" in name:
-                        exluded_terms = ["inner","ext"]
+                        excluded_terms = ["inner","ext"]
                         included_terms = ["ring"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"Ring_Boundary",exluded_terms,included_terms)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Ring_Boundary",excluded_terms,included_terms)
 
                     if "external" in name:
-                        exluded_terms = []
+                        excluded_terms = []
                         included_terms = ["external"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"External_Boundary",exluded_terms,included_terms)
+                        self.extract_organ(index,dataset,contour_data,names,name,"External_Boundary",excluded_terms,included_terms)
 
                     if "iso" in name or "mark" in name:
-                        exluded_terms = ["final","lao","boost"]
+                        excluded_terms = ["final","lao","boost"]
                         included_terms = ["iso", "mark"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"Isocenter",exluded_terms,included_terms)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Isocenter",excluded_terms,included_terms)
 
                     if "cochlea" in name:
-                        exluded_terms = ["sub","total","def","sup","deep","gy","avoid","ptv","push","tail"]
+                        excluded_terms = ["sub","total","def","sup","deep","gy","avoid","ptv","push","tail"]
                         included_terms_right = ["rt","r "," r","right"]
                         included_terms_left = ["lt","l "," l","left"]
 
-                        self.extract_organ(index,dataset,contour_data,names,name,"Right_Cochlea",exluded_terms,included_terms_right)
-                        self.extract_organ(index,dataset,contour_data,names,name,"Left_Cochlea",exluded_terms,included_terms_left)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Right_Cochlea",excluded_terms,included_terms_right)
+                        self.extract_organ(index,dataset,contour_data,names,name,"Left_Cochlea",excluded_terms,included_terms_left)
                 except:
                     print("Error at Index %2i"%index)
 
         return contour_data, names
 
-    def extract_organ(self,index,dataset,contour_data, names, name, standardised_name, exluded_terms, included_terms):
+    def extract_organ(self,index,dataset,contour_data, names, name, standardised_name, excluded_terms, included_terms):
         data = []
         StructureCoordDicts =[]
-        if any(term in name for term in exluded_terms) :
+        if any(term in name for term in excluded_terms) :
             return
         elif any(term in name for term in included_terms):
             StructureCoordDicts.append(dataset.GetStructureCoordinates(index))
-            for j in list(StructureCoordDicts[0]): #iterate through the dictionary i get in line 14
-                data.append(StructureCoordDicts[0][j][0]['data']) #pull out only the matrix of xyz values
+            for j in list(StructureCoordDicts[0]): 
+                data.append(StructureCoordDicts[0][j][0]['data'])
             names[standardised_name] = name
             contour_data[name] = data

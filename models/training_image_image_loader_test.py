@@ -14,10 +14,12 @@ class TestCTImage(unittest.TestCase):
         self.label_files = [
             "/../target/HNSCC-01-0001/Left_Parotid_label.txt"
         ]
-        for i, label in enumerate(self.label_files):
-            self.label_files[i] = os.getcwd()+label
-            self.feature_files[i] = os.getcwd() + self.feature_files[i]
+        self.set_absolute_directories(self.feature_files)
+        self.set_absolute_directories(self.label_files)
 
+    def set_absolute_directories(self, files):
+        for i, file in enumerate(files):
+            files[i] = os.getcwd()+file
 
     def test_happy_scenario (self):
         imageloader = Training_image_loader(self.feature_files,self.label_files,self.batch_size)
@@ -32,11 +34,25 @@ class TestCTImage(unittest.TestCase):
             expected_label_file = np.genfromtxt(label, delimiter = ',')
             expected_label_file_batch.append(expected_label_file)
 
-
         self.assertAlmostEqual(imageloader.batch_size,2)
         np.testing.assert_almost_equal(expected_feature_file_batch,actual_feature_file_batch)
         np.testing.assert_almost_equal(expected_label_file_batch,actual_label_file_batch)
 
-    def test_unhappy_file_does_not_exist (self):
-        imageloader = Training_image_loader(self.feature_files,self.label_files,self.batch_size)
+    def test_unhappy_feature_file_does_not_exist (self):
+        feature_files = [
+            "/../target/HNSCC-01-0001/feature.npy"
+        ]
+        self.set_absolute_directories(feature_files)
+        imageloader = Training_image_loader(feature_files,self.label_files,self.batch_size)
+        self.assertAlmostEqual(imageloader.batch_size,2)
+        self.assertRaises(FileNotFoundError, imageloader.__getitem__, 0)
+
+    def test_unhappy_label_file_does_not_exist (self):
+        label_files = [
+            "/../target/HNSCC-01-0001/label.txt"
+        ]
+        self.set_absolute_directories(label_files)
+        imageloader = Training_image_loader(self.feature_files,label_files,self.batch_size)
+        self.assertAlmostEqual(imageloader.batch_size,2)
+        self.assertRaises(IOError, imageloader.__getitem__, 0)
 
