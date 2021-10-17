@@ -1,5 +1,5 @@
 import unittest
-import transformation_functions
+from transformation_functions import Coordinate_transformer
 import matplotlib.pyplot as plt
 
 class TestCTImage(unittest.TestCase):
@@ -11,53 +11,54 @@ class TestCTImage(unittest.TestCase):
         for i, ycoordinate in enumerate(self.ycoordinates):
             self.coordinates.append((self.xcoordinates[i],ycoordinate))
 
-        before_translation = transformation_functions.FillContourArea(self.coordinates)
+        self.coordinate_transformer = Coordinate_transformer(self.coordinates)
+        before_translation = self.coordinate_transformer.get_contoured_images()
         plt.imshow(before_translation)
         plt.close()
+        self.test_get_coordinate()
 
     def test_get_coordinate(self):
-        x, y, ox, oy = transformation_functions.get_coordinates(self.coordinates)
-        self.assertAlmostEqual(x,self.xcoordinates)
-        self.assertAlmostEqual(y,self.ycoordinates)
-        self.assertAlmostEqual(ox, 150)
-        self.assertAlmostEqual(oy, 150)
+        self.assertAlmostEqual(self.coordinate_transformer.x , self.xcoordinates)
+        self.assertAlmostEqual(self.coordinate_transformer.y , self.ycoordinates)
+        self.assertAlmostEqual(self.coordinate_transformer.ox , 150)
+        self.assertAlmostEqual(self.coordinate_transformer.oy , 150)
 
-    def test_translation(self):
-        coordinates = transformation_functions.translate_points(self.coordinates)
-        post_translation = transformation_functions.FillContourArea(coordinates)
-        plt.imshow(post_translation)
+    def test_contour_translation(self):
+        self.coordinate_transformer.translate_contour()
+        transformed_contour = self.coordinate_transformer.get_contoured_images()
+        plt.imshow(transformed_contour)
         plt.close()
 
-    def test_rotation(self):
-        coordinates = transformation_functions.rotate_around_point(self.coordinates)
-        post_translation = transformation_functions.FillContourArea(coordinates)
-        plt.imshow(post_translation)
-        plt.close()
-
-    def test_random_points(self):
-        coordinates = transformation_functions.MoveRandomPoints(self.coordinates, 0.1)
-        post_translation = transformation_functions.FillContourArea(coordinates)
-        plt.imshow(post_translation)
-        plt.close()
-
-    def test_resize_points(self):
-        coordinates = transformation_functions.resize_points(self.coordinates)
-        post_translation = transformation_functions.FillContourArea(coordinates)
-        plt.imshow(post_translation)
+    def test_translate_random_points(self):
+        self.coordinate_transformer.move_random_points(0.1)
+        transformed_contour = self.coordinate_transformer.get_contoured_images()
+        plt.imshow(transformed_contour)
         plt.close()
 
     def test_shear_points(self):
-        coordinates = transformation_functions.shear_points(self.coordinates)
-        post_translation = transformation_functions.FillContourArea(coordinates)
-        plt.imshow(post_translation)
+        self.coordinate_transformer.shear_points()
+        transformed_contour = self.coordinate_transformer.get_contoured_images()
+        plt.imshow(transformed_contour)
+        plt.close()
+
+    def test_rotation(self):
+        self.coordinate_transformer.rotate_around_point()
+        transformed_contour = self.coordinate_transformer.get_contoured_images()
+        plt.imshow(transformed_contour)
+        plt.close()
+
+    def test_resize_points(self):
+        self.coordinate_transformer.resize_points()
+        transformed_contour = self.coordinate_transformer.get_contoured_images()
+        plt.imshow(transformed_contour)
         plt.close()
 
     def test_composite_transformations(self):
-        # post_translation = transformation_functions.translate_points(self.coordinates)
-        post_translation = transformation_functions.move_random_points(self.coordinates, 0.1)
-        post_translation = transformation_functions.shear_points(post_translation)
-        post_translation = transformation_functions.rotate_around_point(post_translation)
-        # post_translation = transformation_functions.resize_points(post_translation)
-        post_translation = transformation_functions.FillContourArea(post_translation)
-        plt.imshow(post_translation)
+        self.coordinate_transformer.translate_contour()
+        self.coordinate_transformer.move_random_points(0.1)
+        self.coordinate_transformer.shear_points()
+        self.coordinate_transformer.rotate_around_point()
+        self.coordinate_transformer.resize_points()
+        transformed_contour = self.coordinate_transformer.get_contoured_images()
+        plt.imshow(transformed_contour)
         plt.close()
