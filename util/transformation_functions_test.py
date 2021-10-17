@@ -5,15 +5,22 @@ import matplotlib.pyplot as plt
 class TestCTImage(unittest.TestCase):
     def setUp(self) :
         self.coordinates = []
-        xcoordinates = [100,100,200,200]
-        ycoordinates = [100,200,200,100]
+        self.xcoordinates = [100,100,200,200]
+        self.ycoordinates = [100,200,200,100]
 
-        for i, ycoordinate in enumerate(ycoordinates):
-            self.coordinates.append((xcoordinates[i],ycoordinate))
+        for i, ycoordinate in enumerate(self.ycoordinates):
+            self.coordinates.append((self.xcoordinates[i],ycoordinate))
 
         before_translation = transformation_functions.FillContourArea(self.coordinates)
         plt.imshow(before_translation)
         plt.close()
+
+    def test_get_coordinate(self):
+        x, y, ox, oy = transformation_functions.get_coordinates(self.coordinates)
+        self.assertAlmostEqual(x,self.xcoordinates)
+        self.assertAlmostEqual(y,self.ycoordinates)
+        self.assertAlmostEqual(ox, 150)
+        self.assertAlmostEqual(oy, 150)
 
     def test_translation(self):
         coordinates = transformation_functions.translate_points(self.coordinates)
