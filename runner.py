@@ -6,7 +6,7 @@ from processors.plot_medical_images import Plot_medical_images
 #https://services.cancerimagingarchive.net/nbia-api/services/v1/getSeries?Collection=HNSCC&format=html
 count = 0
 while count< 7:
-    batch = Batch_save_feature_files(os.getcwd()+"/metadata.csv")
+    batch = Batch_save_feature_files(os.getcwd()+"/metadata.csv", os.getcwd()+"/target")
     count +=1
 run = Plot_medical_images()
 # index1 = 0

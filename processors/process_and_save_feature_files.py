@@ -5,9 +5,10 @@ from models.processed_data import Processed_data
 import scipy.ndimage
 import csv
 class Process_and_save_feature_files:
-    def __init__(self,dataset):
+    def __init__(self, save_directory, dataset):
         self.allowed_organs = ["Right_Parotid","Left_Parotid"]
         self.required_contours = ["Right_Parotid","Left_Parotid","Isocenter", "Brainstem"]
+        self.save_base_directory = save_directory
         self.ct_image_window = 300
         self.ct_image_level = 40
         self.image_width = self.image_height = 512
@@ -55,7 +56,7 @@ class Process_and_save_feature_files:
         countour_points = []
         for i in range(0,len(Organ_Data)-1):
             for j in range(0,len(Organ_Data[i])-1):
-                if(round(Organ_Data[i][j][2],1) ==round(reverse_factor*pydicom.ImagePositionPatient[2],1)):
+                if(round(Organ_Data[i][j][2],1) == round(reverse_factor*pydicom.ImagePositionPatient[2],1)):
                     OrganIndex1 = int((Organ_Data[i][j][0]-pydicom.ImagePositionPatient[0])/pydicom.PixelSpacing[0])
                     OrganIndex2 = int((Organ_Data[i][j][1]-pydicom.ImagePositionPatient[1])/pydicom.PixelSpacing[1])
                     countour_points.append((OrganIndex1,OrganIndex2))
@@ -170,7 +171,7 @@ class Process_and_save_feature_files:
                 continue
 
             print ("Saving for "+subject_ID)
-            directory = "target/"+subject_ID
+            directory = self.save_base_directory+"/"+subject_ID
             ct_image_directory,label_directory = self.create_directories(directory)
 
             min_z_location, max_z_location, reverse_factor = self.get_z_range(organ_dictionary,organ_map,ct_images)
@@ -185,7 +186,7 @@ class Process_and_save_feature_files:
                     for ct_image in ct_images:
                         z_location = ct_image.pydicom.ImagePositionPatient[2]
 
-                        if(min_z_location<z_location<max_z_location):
+                        if(min_z_location < z_location < max_z_location):
                             ImageArray = self.overlay_contours(ct_image,organ_dictionary[value],reverse_factor)
                             ct_image_3d_dict[z_location] = ImageArray
 
@@ -199,8 +200,8 @@ class Process_and_save_feature_files:
 
         #Save paths to files
         if len(self.processed_data.features)!= 0:
-            features_filename = "target/features.txt"
-            labels_filename = "target/labels.txt"
+            features_filename = self.save_base_directory+"/features.txt"
+            labels_filename = self.save_base_directory+"/labels.txt"
             try:
                 with open(features_filename, 'r') as csvfile:
                     feature_reader = csv.reader(csvfile)
@@ -213,7 +214,6 @@ class Process_and_save_feature_files:
                         self.processed_data.labels.append(directory[0])
             except:
                 print("Error opening directories file")
-
 
             np.savetxt(features_filename, self.processed_data.features, delimiter=",", fmt="%s")
             np.savetxt(labels_filename, self.processed_data.labels, delimiter=",", fmt="%s")
