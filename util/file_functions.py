@@ -10,6 +10,7 @@ def read_csv_as_sorted_list(directory):
         print(directory+" file not found")
         return []
 
+
 def read_txt_and_append_to_list(directory, read_list):
     try:
         with open(directory, 'r') as csvfile:
@@ -18,6 +19,7 @@ def read_txt_and_append_to_list(directory, read_list):
                 read_list.append(directory[0])
     except FileNotFoundError:
         print(directory+" file not found")
+
 
 def save_csv_list(directory, save_list):
     with open(directory, 'w', newline='') as csvfile:
