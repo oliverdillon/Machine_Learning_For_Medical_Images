@@ -1,4 +1,4 @@
 class Dataset:
-    def __init__(self,manifest_dir,data):
-        self.manifest = manifest_dir
+    def __init__(self, metadata_dir, data):
+        self.metadata = metadata_dir
         self.data = data

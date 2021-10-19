@@ -1,14 +1,14 @@
-import csv
-import operator
-
 from models.series import Series
 from models.patient import Patient
 from models.dataset import Dataset
+from util.file_functions import read_csv_as_sorted_list, save_csv_list
+
 
 class Extract_dataset:
-    def __init__(self,manifest_dir, batch_size):
-        self.dataset =None
-        self.manifest_dir = manifest_dir
+    def __init__(self, metadata_dir, batch_size):
+        self.dataset = None
+        self.metadata_dir = metadata_dir
+        self.metadata_processed_dir = self.metadata_dir.replace("metadata", "metadata_processed")
         self.batch_size = batch_size
         self.extract_dataset()
 
@@ -23,41 +23,39 @@ class Extract_dataset:
     def extract_dataset(self):
         print("Extracting Dataset")
         data = []
-        patient_id_state=""
+        patient_id_state = None
         count = 1
-        reader = csv.reader(open(self.manifest_dir))
-        sortedlist = sorted(reader, key=operator.itemgetter(4), reverse=True)
-        sortedDict = self.convert_list_to_dict(sortedlist)
+        sorted_metadata_list = read_csv_as_sorted_list(self.metadata_dir)
+        sorted_metadata_dict = self.convert_list_to_dict(sorted_metadata_list)
+        sorted_processed_metadata_list = read_csv_as_sorted_list(self.metadata_processed_dir)
 
-        while count <= self.batch_size+1 and len(sortedDict)>0:
-            sortedlist.pop()
-            row = sortedDict.pop()
-            series = Series(row)
-            if (count==1):
-                #declare first patient in file
-                patient = Patient(row)
-                patient_id_state=patient.subject_ID
-                count+=1
-            elif(patient_id_state!=series.subject_ID):
-                #declare next patient
-                patient = Patient(row)
-                patient_id_state=series.subject_ID
+        while count <= self.batch_size+1 and len(sorted_metadata_dict) > 0:
+            metadata_list_row = sorted_metadata_list.pop()
+            sorted_processed_metadata_list.append(metadata_list_row)
+            metadata_dict_row = sorted_metadata_dict.pop()
+            series = Series(metadata_dict_row)
+            if count == 1:
+                # declare first patient in file
+                patient = Patient(metadata_dict_row)
+                patient_id_state = patient.subject_ID
+                count += 1
+            elif patient_id_state != series.subject_ID:
+                # declare next patient
+                patient = Patient(metadata_dict_row)
+                patient_id_state = series.subject_ID
 
-            if(len(sortedDict)==0):
-                #add last patient in file
+            if len(sorted_metadata_dict) == 0:
+                # add last patient in file
+                print("Extracted Data for " + patient.subject_ID)
+                data.append(patient)
+                count += 1
+            elif patient_id_state != sorted_metadata_dict[len(sorted_metadata_dict)-1]["Subject ID"]:
+                # add next patient
                 print("Extracted Data for "+patient.subject_ID)
                 data.append(patient)
-                count+=1
-            elif(patient_id_state != sortedDict[len(sortedDict)-1]["Subject ID"]):
-                #add next patient
-                print("Extracted Data for "+patient.subject_ID)
-                data.append(patient)
-                count+=1
+                count += 1
             patient.series.append(series)
 
-        self.dataset = Dataset(self.manifest_dir,data)
-
-        with open(self.manifest_dir, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            for line in sortedlist:
-                writer.writerow(line)
+        self.dataset = Dataset(self.metadata_dir, data)
+        save_csv_list(self.metadata_processed_dir, sorted_processed_metadata_list)
+        save_csv_list(self.metadata_dir, sorted_metadata_list)
