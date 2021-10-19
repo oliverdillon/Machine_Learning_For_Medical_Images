@@ -2,12 +2,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 class Plot_medical_images:
-    def __init__(self):
+    def __init__(self, directory):
         self.image_width = self.image_height = 512
+        self.base_directory = directory
         self.read_ct_images()
 
     def read_ct_images(self):
-        filename = "target/features.txt"
+        filename = self.base_directory+"/features.txt"
         with open(filename, 'r') as csvfile:
             feature_directories = csv.reader(csvfile)
             for directory in feature_directories:
