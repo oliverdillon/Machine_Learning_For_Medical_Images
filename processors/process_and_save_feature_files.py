@@ -94,11 +94,6 @@ class Process_and_save_feature_files:
         self.filter_patient_data()
         self.get_training_data()
 
-    def is_image_data(self, series):
-        if series.modality == "CT" and series.study_date == self.filter_date:
-            return True
-        return False
-
     def get_contour_data(self, patient):
         series_filtered = []
         series_iterator = filter(is_contour_data, patient.series)
@@ -107,6 +102,11 @@ class Process_and_save_feature_files:
             self.filter_date = series.study_date
         # assert(series_filtered,len(1))
         return series_filtered
+
+    def is_image_data(self, series):
+        if series.modality == "CT" and series.study_date == self.filter_date:
+            return True
+        return False
 
     def add_ct_images(self, patient, series_filtered):
         series_iterator = filter(self.is_image_data, patient.series)
