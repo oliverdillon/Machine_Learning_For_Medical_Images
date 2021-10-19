@@ -1,21 +1,24 @@
 from pathlib import Path
 import numpy as np
-from PIL import Image, ImageDraw
 from models.processed_data import Processed_data
 import scipy.ndimage
 import csv
+
+from util.transformation_functions import Coordinate_transformer
+
+
 class Process_and_save_feature_files:
-    def __init__(self, save_directory, dataset):
-        self.allowed_organs = ["Right_Parotid","Left_Parotid"]
-        self.required_contours = ["Right_Parotid","Left_Parotid","Isocenter", "Brainstem"]
+    def __init__(self, dataset, save_directory, allowed_organs):
+        self.dataset = dataset
         self.save_base_directory = save_directory
+        self.allowed_organs = allowed_organs
+        self.required_contours = ["Right_Parotid","Left_Parotid","Isocenter", "Brainstem"]
         self.ct_image_window = 300
         self.ct_image_level = 40
         self.image_width = self.image_height = 512
         self.new_spacing = 3
         self.desired_matrix_length = 36
         self.filter_date = None
-        self.dataset = dataset
         self.processed_data = Processed_data()
         self.filter_patient_data()
         self.get_training_data()
@@ -52,46 +55,41 @@ class Process_and_save_feature_files:
 
             patient.series = series_filtered
 
-    def write_contour_to_image(self,Organ_Data,pydicom, reverse_factor):
-        countour_points = []
-        for i in range(0,len(Organ_Data)-1):
-            for j in range(0,len(Organ_Data[i])-1):
-                if(round(Organ_Data[i][j][2],1) == round(reverse_factor*pydicom.ImagePositionPatient[2],1)):
-                    OrganIndex1 = int((Organ_Data[i][j][0]-pydicom.ImagePositionPatient[0])/pydicom.PixelSpacing[0])
-                    OrganIndex2 = int((Organ_Data[i][j][1]-pydicom.ImagePositionPatient[1])/pydicom.PixelSpacing[1])
-                    countour_points.append((OrganIndex1,OrganIndex2))
-        return countour_points
+    def write_contour_to_image(self, organ_data, pydicom, reverse_factor):
+        contour_points = []
+        for i in range(0, len(organ_data) - 1):
+            for j in range(0, len(organ_data[i]) - 1):
+                if(round(organ_data[i][j][2], 1) == round(reverse_factor * pydicom.ImagePositionPatient[2], 1)):
+                    OrganIndex1 = int((organ_data[i][j][0] - pydicom.ImagePositionPatient[0]) / pydicom.PixelSpacing[0])
+                    OrganIndex2 = int((organ_data[i][j][1] - pydicom.ImagePositionPatient[1]) / pydicom.PixelSpacing[1])
+                    contour_points.append((OrganIndex1,OrganIndex2))
+        return contour_points
 
     def get_label(self,value):
         label = []
         for count, organ in enumerate(self.allowed_organs):
             label.append(0)
-            if (value==organ):
-                label[count] =1
+            if (value == organ):
+                label[count] = 1
         return label
 
-    def fill_contour_area(self,Vertices):
-        # http://stackoverflow.com/a/3732128/1410871
-        img = Image.new(mode='L', size=(self.image_width,self.image_height), color=0)
-        ImageDraw.Draw(img).polygon(xy=Vertices, outline=0, fill=1)
-        #img = img.transpose(Image.ROTATE_90)
-        mask = np.array(img).astype(bool)
-
-        return np.uint8(mask)*255
-
-    def overlay_contours(self,ct_image,organ, reverse_factor):
+    def overlay_contours(self,ct_image, organ, reverse_factor, is_augmented):
         image = ct_image.dicomparser.GetImage(self.ct_image_window,self.ct_image_level)
         image = image.convert(mode ='RGB')
-        ImageArray = np.asarray(image)
-        ImageArray.flags.writeable = 1
+        image_array = np.asarray(image)
+        image_array.flags.writeable = 1
         contour_points = self.write_contour_to_image(organ,ct_image.pydicom,reverse_factor)
 
-        if len(contour_points)!= 0:
-            ImageArray[..., 1] = self.fill_contour_area(contour_points)
+        if len(contour_points) != 0:
+            coordinate_transformer = Coordinate_transformer(contour_points)
+            if is_augmented:
+                image_array[..., 1] = coordinate_transformer.get_augmented_contoured_image()
+            else:
+                image_array[..., 1] = coordinate_transformer.get_contoured_image()
         else:
-            ImageArray[..., 1] = np.zeros(ImageArray[..., 1].shape)
+            image_array[..., 1] = np.zeros(image_array[..., 1].shape)
 
-        return ImageArray
+        return image_array
 
     def average_thickness(self, positions):
         array1 = positions[:-1]
@@ -157,6 +155,11 @@ class Process_and_save_feature_files:
         label_directory = directory+"/{}_label.txt"
         return ct_image_directory,label_directory
 
+    def is_augmented(self, organ):
+        if "augmented" in organ:
+            return True
+        return False
+
     def get_training_data(self):
         data = self.dataset.data
 
@@ -177,26 +180,26 @@ class Process_and_save_feature_files:
             min_z_location, max_z_location, reverse_factor = self.get_z_range(organ_dictionary,organ_map,ct_images)
 
             #loop through organ contours
-            for key, value  in organ_map.items():
-                if key in self.allowed_organs:
-                    ct_image_3d_dict= {}
-                    label = self.get_label(key)
+            for key, value in organ_map.items():
+                matches = [allowed_organ for allowed_organ in self.allowed_organs if key in allowed_organ]
+                for organ in matches:
+                    ct_image_3d_dict = {}
+                    label = self.get_label(organ)
+                    is_augmented = self.is_augmented(organ)
 
                     #build 3d image
                     for ct_image in ct_images:
-                        z_location = ct_image.pydicom.ImagePositionPatient[2]
-
-                        if(min_z_location < z_location < max_z_location):
-                            ImageArray = self.overlay_contours(ct_image,organ_dictionary[value],reverse_factor)
-                            ct_image_3d_dict[z_location] = ImageArray
+                        if(min_z_location < ct_image.zlocation < max_z_location):
+                            ImageArray = self.overlay_contours(ct_image, organ_dictionary[value], reverse_factor, is_augmented)
+                            ct_image_3d_dict[ct_image.zlocation] = ImageArray
 
                     ct_image_3d = self.normalise_3d_image(ct_image_3d_dict)
 
                     #save matrix files
-                    np.save(ct_image_directory.format(key), np.array(ct_image_3d))
-                    np.savetxt(label_directory.format(key), np.array(label), delimiter=",")
-                    self.processed_data.features.append(ct_image_directory.format(key))
-                    self.processed_data.labels.append(label_directory.format(key))
+                    np.save(ct_image_directory.format(organ), np.array(ct_image_3d))
+                    np.savetxt(label_directory.format(organ), np.array(label), delimiter=",")
+                    self.processed_data.features.append(ct_image_directory.format(organ))
+                    self.processed_data.labels.append(label_directory.format(organ))
 
         #Save paths to files
         if len(self.processed_data.features)!= 0:

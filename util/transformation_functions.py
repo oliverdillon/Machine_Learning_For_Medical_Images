@@ -24,7 +24,7 @@ class Coordinate_transformer:
 
         return x, y, ox, oy
 
-    def get_contoured_images(self):
+    def get_contoured_image(self):
         # http://stackoverflow.com/a/3732128/1410871
         img = Image.new(mode='L', size=(512, 512), color=0)
         ImageDraw.Draw(img).polygon(xy=self.contour_points, outline=0, fill=1)
@@ -32,6 +32,15 @@ class Coordinate_transformer:
         mask = np.array(img).astype(bool)
 
         return np.uint8(mask) * 255
+
+    def get_augmented_contoured_image(self):
+        self.translate_contour()
+        self.move_random_points(0.1)
+        self.shear_points()
+        self.rotate_around_point()
+        self.resize_points()
+
+        return self.get_contoured_image()
 
     def translate_contour(self):
         contour_points = []
