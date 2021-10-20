@@ -7,10 +7,8 @@ Created on Wed Feb 26 14:04:58 2020
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten, MaxPooling2D, Conv2D
 from tensorflow.keras.layers import MaxPooling3D, Conv3D, Dropout
-import numpy as np
-from tensorflow.keras import models
 from tensorflow.keras.optimizers import Adam
-import matplotlib.pyplot as plt
+
 
 
 class Convolutional_neural_network:
@@ -55,88 +53,3 @@ class Convolutional_neural_network:
 
         print(self.cnn_model.summary())
         return self.cnn_model
-
-    def perform_n_fold_validation(self, X, y, no_epoch, n):
-        # n-fold cross validation
-        num_val_samples = len(X) / n
-        all_acc = []
-        all_acc_history = []
-        all_loss = []
-        all_loss_history = []
-
-        for i in range(n):
-            print("Fold:%2i" % i)
-
-            start_partition_index = i * num_val_samples
-            end_partition_index = (i + 1) * num_val_samples
-            val_X = X[start_partition_index:end_partition_index]
-            val_y = X[start_partition_index:end_partition_index]
-
-            train_X = np.concatenate([X[:start_partition_index], X[end_partition_index:]], axis=0)
-            train_y = np.concatenate([y[:start_partition_index], y[end_partition_index:]], axis=0)
-
-            history = self.cnn_model.fit(train_X, train_y,
-                                         validation_data=(val_X, val_y), batch_size=16, epochs=no_epoch)
-
-            loss_history = history.history['val_loss']
-            accuracy_history = history.history['val_acc']
-
-            all_acc_history.append(accuracy_history)
-            all_loss_history.append(loss_history)
-
-            val_loss, val_acc = self.cnn_model.evaluate(val_X, val_y, verbose=0)
-            all_acc.append(val_acc)
-            all_loss.append(val_loss)
-
-    def plot_model_activations(self, X_test):
-        # Extracts the outputs of the top 4 layers
-        layer_outputs = [layer.output for layer in self.cnn_model.layers[:4]]
-        layer_names = [layer.name for layer in self.cnn_model.layers[:4]]
-
-        # Creates a model that will return these outputs, given the model input
-        activation_model = models.Model(inputs=self.cnn_model.input, outputs=layer_outputs)
-        activation_model.trainable = False
-
-        no_of_tests = 1
-        scale = no_of_tests * 5
-        fig1, ax1 = plt.subplots(no_of_tests, 3, figsize=[10, scale])
-
-        # Loop adds to plots
-        k = 0
-
-        for index in range(0, no_of_tests):
-            # image predictions
-            test_image = np.expand_dims(X_test[index], axis=0)
-
-            # Returns a list of five Numpy arrays: one array per layer activation
-            activations = activation_model.predict(test_image)
-
-            # get activation matrices of layers
-            first_layer_activation = activations[1]
-            first_layer_n_features = first_layer_activation.shape[-1]
-            second_layer_activation = activations[3]
-            second_layer_n_features = second_layer_activation.shape[-1]
-
-            # Sum contributions of activations after first Layer
-            first_conv_total = np.zeros(first_layer_activation[0, :, :, 0].shape)
-            for i in range(0, first_layer_n_features):
-                first_conv_total += first_layer_activation[0, :, :, i]
-
-            # Sum contributions of activations after second Layer
-            second_conv_total = np.zeros(second_layer_activation[0, :, :, 0].shape)
-            for i in range(0, second_layer_n_features):
-                second_conv_total += second_layer_activation[0, :, :, i]
-
-            # Plot graph
-            ax1[k, 0].imshow(X_test[index])
-            ax1[k, 0].axis('off')
-            ax1[k, 1].imshow(first_conv_total, cmap='gray')
-            ax1[k, 1].axis('off')
-            ax1[k, 2].imshow(second_conv_total, cmap='gray')
-            ax1[k, 2].axis('off')
-            k += 1
-
-        ax1[0, 0].set_title("CT Image")
-        ax1[0, 1].set_title("First Layer")
-        ax1[0, 2].set_title("Contour")
-        plt.show()
