@@ -4,124 +4,119 @@ import numpy as np
 from tensorflow.keras import models
 import matplotlib.pyplot as plt
 
+
+def create_metrics_plots (epoch_nums, path, metric1, metric2, xlabel, ylabel , legend, loc, yscale= None):
+    fig, ax = plt.subplots(1)
+    ax.plot(epoch_nums, metric1, 'x')
+    ax.plot(epoch_nums, metric2, 'x')
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_xlim(xmin=0)
+    ax.legend(legend, loc=loc)
+    if yscale is not None:
+        ax.set_yscale(yscale)
+    fig.savefig(path)
+    plt.show(fig)
+
+    
 def save_metrics(history,path):
     np.savetxt(path+"/Validation Accuracy.csv", np.array(history.history['val_accuracy']), delimiter=",")
     np.savetxt(path+"/Validation Loss.csv", np.array(history.history['val_loss']), delimiter=",")
     np.savetxt(path+"/Accuracy.csv", np.array(history.history['accuracy']), delimiter=",")
     np.savetxt(path+"/Loss.csv", np.array(history.history['loss']), delimiter=",")
 
-
-    epochNums =[]
+    epoch_nums = []
     for i in range(len(history.history['accuracy'])):
-        epochNums.append(i+1)
-        # Plot training & validation accuracy values
-        fig, ax = plt.subplots(1)
-        ax.plot(epochNums,history.history['accuracy'],'x')
-        ax.plot(epochNums,history.history['val_accuracy'],'x')
-        ax.set_ylabel('Accuracy')
-        ax.set_xlabel('Epoch')
-        ax.set_xlim(xmin=0)
-        ax.legend(['Training', 'Validation'], loc='lower right')
-        fig.savefig(path+"/Accuracy.png")
-        plt.show(fig)
+        epoch_nums.append(i+1)
 
         diff = [1-acc for acc in history.history['accuracy'] ]
         val_diff = [1-val_acc for val_acc in history.history['val_accuracy'] ]
+        
+        create_metrics_plots(epoch_nums, path+"/Accuracy.png", history.history['accuracy'], history.history['val_accuracy'],
+                             'Accuracy', 'Epoch', ['Training', 'Validation'],'lower right')
 
-        # Plot training & validation accuracy values
-        fig, ax = plt.subplots(1)
-        ax.plot(epochNums,diff,'x')
-        ax.plot(epochNums,val_diff,'x')
-        ax.set_ylabel('Error')
-        ax.set_yscale("log")
-        ax.set_xlabel('Epoch')
-        ax.set_xlim(xmin=0)
-        ax.legend(['Training', 'Validation'], loc='upper right')
-        fig.savefig(path+"/Error.png")
-        plt.show(fig)
+        create_metrics_plots(epoch_nums, path+"/Error.png", diff, val_diff,
+                             'Error', 'Epoch', ['Training', 'Validation'],'upper right',"log")
+        
+        create_metrics_plots(epoch_nums, path+"/Loss.png", history.history['loss'], history.history['val_loss'],
+                             'Loss', 'Epoch', ['Training', 'Validation'],'upper right',"log")
 
 
-        # Plot training & validation loss values
-        fig, ax = plt.subplots(1)
-        ax.plot(epochNums,history.history['loss'],'x')
-        ax.plot(epochNums,history.history['val_loss'],'x')
-        ax.set_ylabel('Loss')
-        ax.set_yscale("log")
-        ax.set_xlabel('Epoch')
-        ax.set_xlim(xmin=0)
-        ax.legend(['Training', 'Validation'], loc='upper right')
-        fig.savefig(path+"/Loss.png")
-        plt.show(fig)
-
+class Dataset(object):
+    def __init__(self, features, labels):
+        self.features = features
+        self.labels = labels
+    pass
 
 
 class Train_neural_network:
-    def __init__(self,training_data,testing_data,index1,index2):
-        self.allowed_organs = ["Right Parotid","Left Parotid"]
-        self.no_classes = len(self.allowed_organs)
-        self.training_data = training_data
+    
+    def __int__(self, allowed_organs, training_data, validation_data, testing_data):
+        self.no_classes = len(allowed_organs)
         self.testing_data = testing_data
         self.stepSize = 2
         self.epoch_no = 15
+        self.training_data_shape = None#()
+
+        self.X_train = training_data.features
+        self.y_train = training_data.labels
+        self.X_val = validation_data.features
+        self.y_val = validation_data.labels
+        self.X_test = testing_data.features
+        self.y_test = testing_data.labels
+        self.validation_data = validation_data
+        self.testing_data = testing_data
 
         self.training_steps_per_epoch = int(round(len(self.X_train))/self.stepSize)
-        self.validation_steps_per_epoch = int(round(len(self.X_Val))/self.stepSize)
-
-        self.X_train = self.training_data.dataset[index2:]
-        self.y_train = self.training_data.labels[index2:]
-        self.X_Val = self.training_data.dataset[index1:index2]
-        self.y_Val = self.training_data.labels[index1:index2]
+        self.validation_steps_per_epoch = int(round(len(self.X_val))/self.stepSize)
 
         self.convolutional_neural_network = Convolutional_neural_network(no_of_spacial_dimensions=3)
 
+        self.train_neural_network()
+        self.plot_model_activations()
+        
+
+    def __init__(self, allowed_organs, training_data, testing_data, index1, index2):
+        X_data = np.concatenate([training_data.features[:index1], training_data.features[index2:]], axis=0)
+        y_data = np.concatenate([training_data.labels[:index1], training_data.labels[index2:]],  axis=0)
+
+        training_data = Dataset(training_data.features[index1:index2],training_data.features[index1:index2])
+        validation_data = Dataset(X_data, y_data)
+        
+        self(allowed_organs, training_data, validation_data, testing_data)
+
     def train_neural_network(self):
         training_generator = Training_image_loader(self.X_train, self.y_train, self.stepSize)
-        validation_generator = Training_image_loader(self.X_Val, self.y_Val, self.stepSize)
+        validation_generator = Training_image_loader(self.X_val, self.y_val, self.stepSize)
 
-        self.convolutional_neural_network.add_convolution_layer(no_filter=32, shape=self.training_data.dataset[0].shape)
+        self.convolutional_neural_network.add_convolution_layer(no_filter=32, shape=self.training_data_shape)
         self.convolutional_neural_network.add_max_pooling_layer()
         self.convolutional_neural_network.add_convolution_layer(no_filter=64)
         self.convolutional_neural_network.add_max_pooling_layer()
         self.convolutional_neural_network.add_dense_layer(no_filter=512)
         self.cnn_model = self.convolutional_neural_network.compile_and_get_model(no_classes=2)
 
-        history = self.cnn_model.fit_generator(generator=training_generator, steps_per_epoch=self.training_steps_per_epoch,
-                                      validation_data=validation_generator,
-                                      validation_steps=self.validation_steps_per_epoch,
-                                      epochs=self.epoch_no, verbose=2, max_queue_size=1)
+        history = self.cnn_model.fit_generator(generator=training_generator,
+                                               steps_per_epoch=self.training_steps_per_epoch,
+                                               validation_data=validation_generator,
+                                               validation_steps=self.validation_steps_per_epoch,
+                                               epochs=self.epoch_no, verbose=2, max_queue_size=1)
         save_metrics(history, "/target")
 
-    def perform_n_fold_validation(self, X, y, no_epoch, n):
-        # n-fold cross validation
-        num_val_samples = len(X) / n
-        all_acc = []
-        all_acc_history = []
-        all_loss = []
-        all_loss_history = []
+        self.history = history
 
-        for i in range(n):
-            print("Fold:%2i" % i)
 
-            start_partition_index = i * num_val_samples
-            end_partition_index = (i + 1) * num_val_samples
-            val_X = X[start_partition_index:end_partition_index]
-            val_y = X[start_partition_index:end_partition_index]
+    def get_metrics(self):
+        return self.history.history['accuracy'],self.history.history['loss'],\
+               self.history.history['val_loss'], self.history.history['val_acc']
 
-            train_X = np.concatenate([X[:start_partition_index], X[end_partition_index:]], axis=0)
-            train_y = np.concatenate([y[:start_partition_index], y[end_partition_index:]], axis=0)
+    def evaluate_neural_network(self):
+        testing_generator = Training_image_loader(self.X_test, self.y_test, self.stepSize)
+        test_loss, test_accuracy = self.cnn_model.evaluate(testing_data=testing_generator,
+                                                      validation_steps=self.validation_steps_per_epoch, verbose=0)
+        return test_accuracy, test_loss
+        
 
-            history = self.cnn_model.fit(train_X, train_y,
-                                         validation_data=(val_X, val_y), batch_size=16, epochs=no_epoch)
-
-            loss_history = history.history['val_loss']
-            accuracy_history = history.history['val_acc']
-
-            all_acc_history.append(accuracy_history)
-            all_loss_history.append(loss_history)
-
-            val_loss, val_acc = self.cnn_model.evaluate(val_X, val_y, verbose=0)
-            all_acc.append(val_acc)
-            all_loss.append(val_loss)
 
     def plot_model_activations(self, X_test):
         # Extracts the outputs of the top 4 layers
