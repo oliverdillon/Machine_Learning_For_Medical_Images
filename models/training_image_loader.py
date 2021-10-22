@@ -15,15 +15,16 @@ class Training_image_loader(Sequence):
         batch_index1 = idx * self.batch_size
         batch_index2 = (idx + 1) * self.batch_size
 
-        batch_Paths_X = self.x[batch_index1:batch_index2]
-        batch_Paths_y = self.y[batch_index1:batch_index2]
-        batch_x, batch_y = self.get_training_data(batch_Paths_X,batch_Paths_y)
+        batch_paths_X = self.x[batch_index1:batch_index2]
+        batch_paths_y = self.y[batch_index1:batch_index2]
+        batch_X, batch_y = self.get_training_data(batch_paths_X, batch_paths_y)
 
-        return np.array(batch_x), np.array(batch_y)
+        return batch_X, batch_y
 
     def get_input(self, filename):
         img = np.load(filename)
-        img = np.divide(img,255)
+        img = np.reshape(img, (512, 512, -1, 3))
+        img = np.divide(img, 255)
         return img
 
     def get_output(self, filename):

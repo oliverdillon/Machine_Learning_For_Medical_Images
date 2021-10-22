@@ -49,14 +49,13 @@ class Train_neural_network:
         X_data = np.concatenate([training_data.features[:index1], training_data.features[index2:]], axis=0)
         y_data = np.concatenate([training_data.labels[:index1], training_data.labels[index2:]],  axis=0)
 
-        training_data = CNN_Dataset(training_data.features[index1:index2], training_data.features[index1:index2])
+        training_data = CNN_Dataset(training_data.features[index1:index2], training_data.labels[index1:index2])
         validation_data = CNN_Dataset(X_data, y_data)
 
         self.no_classes = len(allowed_organs)
         self.testing_data = testing_data
         self.stepSize = 2
-        self.epoch_no = 15
-        self.training_data_shape = (36, 512, 512, 3)
+        self.epoch_no = 8
 
         self.X_train = training_data.features
         self.y_train = training_data.labels
@@ -65,8 +64,14 @@ class Train_neural_network:
         self.X_test = testing_data.features
         self.y_test = testing_data.labels
 
+        self.training_generator = Training_image_loader(self.X_train, self.y_train, self.stepSize)
+        self.validation_generator = Training_image_loader(self.X_val, self.y_val, self.stepSize)
+
+        temp_batch, _ = self.training_generator.__getitem__(0)
+        self.training_data_shape = temp_batch.shape[1:]
         self.training_steps_per_epoch = int(round(len(self.X_train))/self.stepSize)
         self.validation_steps_per_epoch = int(round(len(self.X_val))/self.stepSize)
+        self.testing_steps = int(round(len(self.X_test))/self.stepSize)
 
         self.convolutional_neural_network = Convolutional_neural_network(no_of_spacial_dimensions=3)
 
@@ -74,21 +79,18 @@ class Train_neural_network:
         self.plot_model_activations()
 
     def train_neural_network(self):
-        training_generator = Training_image_loader(self.X_train, self.y_train, self.stepSize)
-        validation_generator = Training_image_loader(self.X_val, self.y_val, self.stepSize)
-
-        self.convolutional_neural_network.add_convolution_layer(no_filter=32, shape=self.training_data_shape)
+        self.convolutional_neural_network.add_convolution_layer(no_filter=16, shape=self.training_data_shape)
         self.convolutional_neural_network.add_max_pooling_layer()
-        self.convolutional_neural_network.add_convolution_layer(no_filter=64)
+        self.convolutional_neural_network.add_convolution_layer(no_filter=16)
         self.convolutional_neural_network.add_max_pooling_layer()
-        self.convolutional_neural_network.add_dense_layer(no_filter=512)
-        self.cnn_model = self.convolutional_neural_network.compile_and_get_model(no_classes=2)
+        self.convolutional_neural_network.add_dense_layer(no_filter=16)
+        self.cnn_model = self.convolutional_neural_network.compile_and_get_model(no_classes=self.no_classes)
 
-        history = self.cnn_model.fit_generator(generator=training_generator,
-                                               steps_per_epoch=self.training_steps_per_epoch,
-                                               validation_data=validation_generator,
-                                               validation_steps=self.validation_steps_per_epoch,
-                                               epochs=self.epoch_no, verbose=2, max_queue_size=1)
+        history = self.cnn_model.fit(self.training_generator,
+                                     steps_per_epoch=self.training_steps_per_epoch,
+                                     validation_data=self.validation_generator,
+                                     validation_steps=self.validation_steps_per_epoch,
+                                     epochs=self.epoch_no, verbose=2, max_queue_size=1)
         save_metrics(history, "/target")
 
         self.history = history
@@ -101,7 +103,7 @@ class Train_neural_network:
     def evaluate_neural_network(self):
         testing_generator = Training_image_loader(self.X_test, self.y_test, self.stepSize)
         test_loss, test_accuracy = self.cnn_model.evaluate(testing_data=testing_generator,
-                                                      validation_steps=self.validation_steps_per_epoch, verbose=0)
+                                                           testing_steps=self.testing_steps, verbose=0)
         return test_accuracy, test_loss
         
     def plot_model_activations(self, X_test):
