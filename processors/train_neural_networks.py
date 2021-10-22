@@ -1,3 +1,4 @@
+from models.cnn_dataset import CNN_Dataset
 from models.training_image_loader import Training_image_loader
 from processors.create_cnn_models import Convolutional_neural_network
 import numpy as np
@@ -42,21 +43,20 @@ def save_metrics(history,path):
                              'Loss', 'Epoch', ['Training', 'Validation'],'upper right',"log")
 
 
-class Dataset(object):
-    def __init__(self, features, labels):
-        self.features = features
-        self.labels = labels
-    pass
-
-
 class Train_neural_network:
-    
-    def __int__(self, allowed_organs, training_data, validation_data, testing_data):
+
+    def __init__(self, allowed_organs, training_data, testing_data, index1, index2):
+        X_data = np.concatenate([training_data.features[:index1], training_data.features[index2:]], axis=0)
+        y_data = np.concatenate([training_data.labels[:index1], training_data.labels[index2:]],  axis=0)
+
+        training_data = CNN_Dataset(training_data.features[index1:index2], training_data.features[index1:index2])
+        validation_data = CNN_Dataset(X_data, y_data)
+
         self.no_classes = len(allowed_organs)
         self.testing_data = testing_data
         self.stepSize = 2
         self.epoch_no = 15
-        self.training_data_shape = None#()
+        self.training_data_shape = (36, 512, 512, 3)
 
         self.X_train = training_data.features
         self.y_train = training_data.labels
@@ -64,8 +64,6 @@ class Train_neural_network:
         self.y_val = validation_data.labels
         self.X_test = testing_data.features
         self.y_test = testing_data.labels
-        self.validation_data = validation_data
-        self.testing_data = testing_data
 
         self.training_steps_per_epoch = int(round(len(self.X_train))/self.stepSize)
         self.validation_steps_per_epoch = int(round(len(self.X_val))/self.stepSize)
@@ -74,16 +72,6 @@ class Train_neural_network:
 
         self.train_neural_network()
         self.plot_model_activations()
-        
-
-    def __init__(self, allowed_organs, training_data, testing_data, index1, index2):
-        X_data = np.concatenate([training_data.features[:index1], training_data.features[index2:]], axis=0)
-        y_data = np.concatenate([training_data.labels[:index1], training_data.labels[index2:]],  axis=0)
-
-        training_data = Dataset(training_data.features[index1:index2],training_data.features[index1:index2])
-        validation_data = Dataset(X_data, y_data)
-        
-        self(allowed_organs, training_data, validation_data, testing_data)
 
     def train_neural_network(self):
         training_generator = Training_image_loader(self.X_train, self.y_train, self.stepSize)
@@ -116,8 +104,6 @@ class Train_neural_network:
                                                       validation_steps=self.validation_steps_per_epoch, verbose=0)
         return test_accuracy, test_loss
         
-
-
     def plot_model_activations(self, X_test):
         # Extracts the outputs of the top 4 layers
         layer_outputs = [layer.output for layer in self.cnn_model.layers[:4]]

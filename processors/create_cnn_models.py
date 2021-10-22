@@ -18,9 +18,15 @@ class Convolutional_neural_network:
 
     def add_convolution_layer(self, strides=(3, 3, 3), no_filter=32, shape=None):
         if self.no_of_spacial_dimensions == 3:
-            self.cnn_model.add(Conv3D(no_filter, strides, input_shape=shape, activation='relu'))
+            if shape is not None:
+                self.cnn_model.add(Conv3D(no_filter, strides, input_shape=shape, activation='relu'))
+            else:
+                self.cnn_model.add(Conv3D(no_filter, strides, activation='relu'))
         elif self.no_of_spacial_dimensions == 2:
-            self.cnn_model.add(Conv2D(no_filter, (3, 3), input_shape=shape, activation='relu'))
+            if shape is not None:
+                self.cnn_model.add(Conv2D(no_filter, (3, 3), input_shape=shape, activation='relu'))
+            else:
+                self.cnn_model.add(Conv3D(no_filter, (3, 3), activation='relu'))
 
     def add_max_pooling_layer(self, strides=(2, 2, 2)):
         if self.no_of_spacial_dimensions == 3:
