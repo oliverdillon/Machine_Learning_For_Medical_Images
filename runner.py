@@ -16,7 +16,7 @@ augmented_organs = ["Right_Parotid", "Right_Parotid_augmented"]
 #                                      os.getcwd()+"/target/augmentation", augmented_organs)
 #     count +=1
 # print("classification")
-# Plot_medical_images(os.getcwd()+"/target/classification")
+Plot_medical_images(os.getcwd()+"/target/classification", classified_organs)
 # print("augmentation")
-# Plot_medical_images(os.getcwd()+"/target/augmentation")
-Perform_n_fold_validation(classified_organs, 2, os.getcwd()+"/target/classification")
+# Plot_medical_images(os.getcwd()+"/target/augmentation", augmented_organs)
+# Perform_n_fold_validation(classified_organs, 2, os.getcwd()+"/target/classification")
