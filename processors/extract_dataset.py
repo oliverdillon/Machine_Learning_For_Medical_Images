@@ -8,7 +8,8 @@ class Extract_dataset:
     def __init__(self, metadata_dir, batch_size):
         self.dataset = None
         self.metadata_dir = metadata_dir
-        self.metadata_processed_dir = self.metadata_dir.replace("metadata", "metadata_processed")
+        self.metadata_processed_dir = self.metadata_dir\
+            .replace("metadata", "archive/metadata_processed")
         self.batch_size = batch_size
         self.extract_dataset()
 

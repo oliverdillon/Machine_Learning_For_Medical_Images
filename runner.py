@@ -9,14 +9,14 @@ count = 0
 classified_organs = ["Right_Parotid", "Left_Parotid"]
 augmented_organs = ["Right_Parotid", "Right_Parotid_augmented"]
 
-# while count< 7:
-#     Batch_save_feature_files(os.getcwd()+"/metadata_testing_classification.csv",
-#                                      os.getcwd()+"/target/classification", classified_organs)
-#     Batch_save_feature_files(os.getcwd()+"/metadata_testing_augmentation.csv",
-#                                      os.getcwd()+"/target/augmentation", augmented_organs)
-#     count +=1
+while count< 7:
+    Batch_save_feature_files(os.getcwd()+"/metadata_testing_classification.csv",
+                                     os.getcwd()+"/target/classification", classified_organs)
+    Batch_save_feature_files(os.getcwd()+"/metadata_testing_augmentation.csv",
+                                     os.getcwd()+"/target/augmentation", augmented_organs)
+    count +=1
 # print("classification")
-Plot_medical_images(os.getcwd()+"/target/classification", classified_organs)
+# Plot_medical_images(os.getcwd()+"/target/classification", classified_organs)
 # print("augmentation")
 # Plot_medical_images(os.getcwd()+"/target/augmentation", augmented_organs)
 # Perform_n_fold_validation(classified_organs, 2, os.getcwd()+"/target/classification")
