@@ -4,9 +4,9 @@ count = 0
 classified_organs = ["Right_Parotid", "Left_Parotid"]
 augmented_organs = ["Right_Parotid", "Right_Parotid_augmented"]
 
-while count< 7:
-    Batch_save_feature_files("D:/Masters/manifest-1634647071762/metadata.csv",
-                             "D:/Masters/classification", classified_organs)
-    Batch_save_feature_files("D:/Masters/manifest-1634647071762/metadata.csv",
-                             "D:/Masters//augmentation", augmented_organs)
-    count +=1
+while count < 20:
+    Batch_save_feature_files("D:/MPhys/manifest-1633461705263/metadata_classification.csv",
+                             "D:/MPhys/classification", classified_organs)
+    Batch_save_feature_files("D:/MPhys/manifest-1633461705263/metadata_augmentation.csv",
+                             "D:/MPhys/augmentation", augmented_organs)
+    count += 1

@@ -14,16 +14,17 @@ class Batch_save_feature_files:
         self.save_directory = save_directory
         self.metadata_original_dir = self.metadata_directory\
             .replace("metadata", "/archive/metadata_original")
+        regex = re.compile(r"/metadata.+", re.IGNORECASE)
+        self.root_archive_directory = regex.sub("", self.metadata_original_dir)
+        self.root_directory = regex.sub("", self.metadata_directory)
         self.store_original_metadata()
         self.extract_save_files()
 
     def store_original_metadata(self):
         if not(os.path.isfile(self.metadata_original_dir)):
-            regex = re.compile(r"/metadata.+", re.IGNORECASE)
-            directory = regex.sub("", self.metadata_original_dir)
-            Path(directory).mkdir(parents=True, exist_ok=True)
+            Path(self.root_archive_directory).mkdir(parents=True, exist_ok=True)
             copyfile(self.metadata_directory, self.metadata_original_dir)
 
     def extract_save_files(self):
-        extract_dataset = Extract_dataset(self.metadata_directory, self.patient_batch_size)
+        extract_dataset = Extract_dataset(self.root_directory, self.metadata_directory, self.patient_batch_size)
         Process_and_save_feature_files(extract_dataset.dataset, self.save_directory, self.allowed_organs)

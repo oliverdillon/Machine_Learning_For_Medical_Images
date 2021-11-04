@@ -173,6 +173,10 @@ class Process_and_save_feature_files:
         data = self.dataset.data
 
         for count, patient in enumerate(data):
+            if len(patient.series) == 0:
+                print("Patient is missing contour data and/or image data")
+                continue
+
             organ_dictionary = patient.series[0].contours_data
             organ_map = patient.series[0].organs
             ct_images = patient.series[1].medical_images
