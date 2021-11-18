@@ -36,7 +36,7 @@ def get_z_range(organ_dictionary, organ_map, ct_images):
                                                                   max_z_location, min_z_location, reverse_factor)
 
     if max_z_location is None:
-        return
+        raise LookupError("Max Location is not found")
     else:
         return min_z_location, max_z_location, reverse_factor
 
@@ -190,7 +190,11 @@ class Process_and_save_feature_files:
             directory = self.save_base_directory + "/" + subject_ID
             ct_image_directory, label_directory = create_directories(directory)
 
-            min_z_location, max_z_location, reverse_factor = get_z_range(organ_dictionary, organ_map, ct_images)
+            try:
+                min_z_location, max_z_location, reverse_factor = get_z_range(organ_dictionary, organ_map, ct_images)
+            except LookupError as err:
+                print("Lookup Error: {0}".format(err))
+                continue
 
             # loop through organ contours
             for key, value in organ_map.items():
