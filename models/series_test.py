@@ -72,18 +72,24 @@ class TestSeries(unittest.TestCase):
             self.assertRegex(series.file_location, "./HNSCC/HNSCC-01-0001/.+")
             self.assertEqual(series.root_directory, root_dir)
             if series.series_uid == rstruct_data_uid:
-                self.evaluate_contour_data(series.contours_data)
+                self.evaluate_contour_data(series.contours_data,series.organs)
             else:
                 self.assertEqual(len(series.contours_data), 0)
                 self.assertEqual(len(series.organs), 0)
             # self.assertEqual(series.organs, "HNSCC")
 
-    def evaluate_contour_data(self, contour_data):
+    def evaluate_contour_data(self, contour_data, organs):
+        #TODO check all data contained
         self.assertEqual(len(contour_data), 6)
         included_contours = [
             'marked isocenter', 'brainstem', 'rt parotid', 'lt parotid', 'external', 'ring'
         ]
+        included_contours_normalised = [
+            'Isocenter', 'Brainstem', 'Right_Parotid', 'Left_Parotid', 'External_Boundary', 'Ring_Boundary'
+        ]
         self.assertCountEqual(contour_data.keys(), included_contours)
+        self.assertCountEqual(organs.keys(), included_contours_normalised)
+        self.assertCountEqual(organs.values(), included_contours)
         for value in contour_data.values():
             self.assertGreater(len(value), 0)
 
