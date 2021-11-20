@@ -5,7 +5,7 @@ import os
 from models.training_image_loader import Training_image_loader
 
 
-class TestCTImage(unittest.TestCase):
+class Test3DImageLoader(unittest.TestCase):
     def setUp(self):
         self.batch_size =2
         self.feature_files = [

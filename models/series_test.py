@@ -4,7 +4,7 @@ import os
 from models.series import Series
 
 
-class TestCTImage(unittest.TestCase):
+class TestSeries(unittest.TestCase):
     def setUp(self):
         self.read_data_titles = "Series UID,Collection,3rd Party Analysis,Data Description URI,Subject ID,Study UID,Study Description,Study Date,Series Description,Manufacturer,Modality,SOP Class Name,SOP Class UID,Number of Images,File Size,File Location,Download Timestamp"
         
