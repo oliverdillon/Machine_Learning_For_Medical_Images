@@ -9,14 +9,14 @@ count = 0
 classified_organs = ["Right_Parotid", "Left_Parotid"]
 augmented_organs = ["Right_Parotid", "Right_Parotid_augmented"]
 
-# while count < 7:
-#     SaveFeatureFileBatchProcessor(os.getcwd() + "/metadata_testing_classification.csv",
-#                                   os.getcwd() + "/target/classification", classified_organs)
-#     SaveFeatureFileBatchProcessor(os.getcwd() + "/metadata_testing_augmentation.csv",
-#                                   os.getcwd() + "/target/augmentation", augmented_organs)
-#     count += 1
+while count < 1:
+    SaveFeatureFileBatchProcessor(os.getcwd() + "/metadata_testing_classification.csv",
+                                  os.getcwd() + "/target/classification", classified_organs)
+    SaveFeatureFileBatchProcessor(os.getcwd() + "/metadata_testing_augmentation.csv",
+                                  os.getcwd() + "/target/augmentation", augmented_organs)
+    count += 1
 # print("classification")
 # ProcessedMedicalImagePlotter(os.getcwd()+"/target/classification", classified_organs)
 # print("augmentation")
-ProcessedMedicalImagePlotter(os.getcwd()+"/target/augmentation", augmented_organs)
+# ProcessedMedicalImagePlotter(os.getcwd()+"/target/augmentation", augmented_organs)
 # NFoldValidator(classified_organs, 2, os.getcwd()+"/target/classification")

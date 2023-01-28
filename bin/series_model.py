@@ -99,7 +99,7 @@ class SeriesModel:
                                       included_terms_right)
                         extract_organ(index, dataset, contour_data, names, name, "Left_Cochlea", excluded_terms,
                                       included_terms_left)
-                except:
-                    print("Error at Index %2i" % index)
+                except Exception as e:
+                    print("Exception: {} raised at Index {}".format(e, index))
 
         return contour_data, names

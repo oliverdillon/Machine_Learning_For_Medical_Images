@@ -23,6 +23,10 @@ def convert_list_to_dict(list_param):
 
 class DatasetExtractor:
     def __init__(self, root_directory, metadata_dir, batch_size):
+        print("STARTED - DatasetExtractor with Parameters:"
+              "\nroot_directory: {}"
+              "\nmetadata_dir: {}"
+              "\nbatch_size:{}".format(root_directory, metadata_dir, batch_size))
         self.dataset = None
         self.metadata_dir = metadata_dir
         self.metadata_processed_dir = self.metadata_dir \
@@ -30,9 +34,9 @@ class DatasetExtractor:
         self.root_directory = root_directory
         self.batch_size = batch_size
         self.extract_dataset()
+        print("COMPLETE - DatasetExtractor")
 
     def extract_dataset(self):
-        print("Extracting Dataset")
         data = []
         patient_id_state = None
         count = 1
@@ -57,12 +61,12 @@ class DatasetExtractor:
 
             if len(sorted_metadata_dict) == 0:
                 # add last patient in file
-                print("Extracted Data for " + patient.subject_ID)
+                print("COMPLETE - Extracted Data for " + patient.subject_ID)
                 data.append(patient)
                 count += 1
             elif patient_id_state != sorted_metadata_dict[len(sorted_metadata_dict) - 1]["Subject ID"]:
                 # add next patient
-                print("Extracted Data for " + patient.subject_ID)
+                print("COMPLETE - Extracted Data for " + patient.subject_ID)
                 data.append(patient)
                 count += 1
             patient.series.append(series)
