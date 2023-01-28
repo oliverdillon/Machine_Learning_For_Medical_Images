@@ -73,12 +73,11 @@ class CnnTrainer:
         self.validation_steps_per_epoch = int(round(len(self.X_val)) / self.stepSize)
         self.testing_steps = int(round(len(self.X_test)) / self.stepSize)
 
-        self.convolutional_neural_network = cnn_model
-
+        self.cnn_model = cnn_model
+        self.history = None
 
     def train_neural_network(self):
-        self.cnn_model = self.convolutional_neural_network.compile_and_get_model(no_classes=self.no_classes)
-
+        self.cnn_model.compile_and_get_model(no_classes=self.no_classes)
         history = self.cnn_model.fit(self.training_generator,
                                      steps_per_epoch=self.training_steps_per_epoch,
                                      validation_data=self.validation_generator,

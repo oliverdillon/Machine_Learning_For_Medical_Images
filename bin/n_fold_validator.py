@@ -43,12 +43,12 @@ class NFoldValidator:
                                      start_partition_index, end_partition_index,
                                      cnn_model)
 
-            cnn_model.add_convolution_layer(no_filter=16,
-                                            shape=cnn_trainer.training_data_shape)
-            cnn_model.add_max_pooling_layer()
-            cnn_model.add_convolution_layer(no_filter=16)
-            cnn_model.add_max_pooling_layer()
-            cnn_model.add_dense_layer(no_filter=16)
+            cnn_trainer.cnn_model.add_convolution_layer(no_filter=16,
+                                                        shape=cnn_trainer.training_data_shape)
+            cnn_trainer.cnn_model.add_max_pooling_layer()
+            cnn_trainer.cnn_model.add_convolution_layer(no_filter=16)
+            cnn_trainer.cnn_model.add_max_pooling_layer()
+            cnn_trainer.cnn_model.add_dense_layer(no_filter=16)
             cnn_trainer.train_neural_network()
 
             accuracy, loss, validation_accuracy, validation_loss = cnn_trainer.get_metrics()
