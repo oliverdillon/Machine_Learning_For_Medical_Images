@@ -1,6 +1,7 @@
+from cnn_model import CnnModel
 from training_data_model import TrainingDataModel
 from cnn_trainer import CnnTrainer
-from util.file_functions import read_txt_and_append_to_list
+from file_functions import read_txt_and_append_to_list
 
 
 class NFoldValidator:
@@ -9,10 +10,7 @@ class NFoldValidator:
         self.allowed_organs = allowed_organs
         self.no_of_folds = no_of_folds
         self.base_directory = directory
-        self.get_data_directories()
-        self.perform_n_fold_validation()
 
-    def get_data_directories(self):
         total_features = []
         total_labels = []
         read_txt_and_append_to_list(self.base_directory + "/features.txt", total_features)
@@ -21,7 +19,7 @@ class NFoldValidator:
         self.training_dataset = TrainingDataModel(total_features[:self.training_size],
                                                   total_labels[:self.training_size])
         self.testing_dataset = TrainingDataModel(total_features[self.training_size:], total_labels[self.training_size:])
-        print('read directory files')
+        self.perform_n_fold_validation()
 
     def perform_n_fold_validation(self):
         # n-fold cross validation
@@ -38,11 +36,23 @@ class NFoldValidator:
 
             start_partition_index = i * num_val_samples
             end_partition_index = (i + 1) * num_val_samples
-            train_neural_network = CnnTrainer(self.allowed_organs, self.training_dataset,
-                                              self.testing_dataset,
-                                              start_partition_index, end_partition_index)
-            accuracy, loss, validation_accuracy, validation_loss = train_neural_network.get_metrics()
-            testing_accuracy, testing_loss = train_neural_network.evaluate_neural_network()
+
+            cnn_model = CnnModel(no_of_spacial_dimensions=3)
+            cnn_trainer = CnnTrainer(self.allowed_organs,
+                                     self.training_dataset, self.testing_dataset,
+                                     start_partition_index, end_partition_index,
+                                     cnn_model)
+
+            cnn_model.add_convolution_layer(no_filter=16,
+                                            shape=cnn_trainer.training_data_shape)
+            cnn_model.add_max_pooling_layer()
+            cnn_model.add_convolution_layer(no_filter=16)
+            cnn_model.add_max_pooling_layer()
+            cnn_model.add_dense_layer(no_filter=16)
+            cnn_trainer.train_neural_network()
+
+            accuracy, loss, validation_accuracy, validation_loss = cnn_trainer.get_metrics()
+            testing_accuracy, testing_loss = cnn_trainer.evaluate_neural_network()
             accuracy_values.append(accuracy)
             loss_values.append(loss)
 

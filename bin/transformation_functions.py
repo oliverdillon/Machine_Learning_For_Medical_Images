@@ -10,19 +10,20 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 
-class Coordinate_transformer:
+def get_coordinates(points):
+    x = [point[0] for point in points]
+    y = [point[1] for point in points]
+
+    ox = sum(x) / len(x)
+    oy = sum(y) / len(y)
+
+    return x, y, ox, oy
+
+
+class CoordinateTransformer:
     def __init__(self, contour_points):
-        self.x, self.y, self.ox, self.oy = self.get_coordinates(contour_points)
+        self.x, self.y, self.ox, self.oy = get_coordinates(contour_points)
         self.contour_points = contour_points
-
-    def get_coordinates(self, points):
-        x = [point[0] for point in points]
-        y = [point[1] for point in points]
-
-        ox = sum(x) / len(x)
-        oy = sum(y) / len(y)
-
-        return x, y, ox, oy
 
     def get_contoured_image(self):
         # http://stackoverflow.com/a/3732128/1410871
@@ -64,7 +65,7 @@ class Coordinate_transformer:
         i = 0
         number_of_points = len(self.x)
 
-        while (i < number_of_points * percentage):
+        while i < number_of_points * percentage:
             random_index = random.randint(0, number_of_points - 1)
             random_cluster = random.randint(random_index + 1, number_of_points)
             for k in range(random_index, random_cluster):
@@ -88,7 +89,7 @@ class Coordinate_transformer:
         dx = [(point - self.ox) for point in self.x]
         dy = [(point - self.oy) for point in self.y]
 
-        phi = random.uniform(88 , 90) * math.pi / 180
+        phi = random.uniform(88, 90) * math.pi / 180
         M = 1.0 / np.tan(phi)
 
         XorY = random.randint(0, 1)

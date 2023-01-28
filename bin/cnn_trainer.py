@@ -1,6 +1,5 @@
 from training_data_model import TrainingDataModel
 from image_loader_model import ImageLoaderModel
-from cnn_model import CnnModel
 import numpy as np
 from tensorflow.keras import models
 import matplotlib.pyplot as plt
@@ -46,7 +45,7 @@ def save_metrics(history, path):
 
 class CnnTrainer:
 
-    def __init__(self, allowed_organs, training_data, testing_data, index1, index2):
+    def __init__(self, allowed_organs, training_data, testing_data, index1, index2, cnn_model):
         X_data = np.concatenate([training_data.features[:index1], training_data.features[index2:]], axis=0)
         y_data = np.concatenate([training_data.labels[:index1], training_data.labels[index2:]], axis=0)
 
@@ -74,17 +73,10 @@ class CnnTrainer:
         self.validation_steps_per_epoch = int(round(len(self.X_val)) / self.stepSize)
         self.testing_steps = int(round(len(self.X_test)) / self.stepSize)
 
-        self.convolutional_neural_network = CnnModel(no_of_spacial_dimensions=3)
+        self.convolutional_neural_network = cnn_model
 
-        self.train_neural_network()
-        # self.plot_model_activations()
 
     def train_neural_network(self):
-        self.convolutional_neural_network.add_convolution_layer(no_filter=16, shape=self.training_data_shape)
-        self.convolutional_neural_network.add_max_pooling_layer()
-        self.convolutional_neural_network.add_convolution_layer(no_filter=16)
-        self.convolutional_neural_network.add_max_pooling_layer()
-        self.convolutional_neural_network.add_dense_layer(no_filter=16)
         self.cnn_model = self.convolutional_neural_network.compile_and_get_model(no_classes=self.no_classes)
 
         history = self.cnn_model.fit(self.training_generator,

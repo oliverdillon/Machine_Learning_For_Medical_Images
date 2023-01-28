@@ -1,27 +1,28 @@
 import unittest
-from transformation_functions import Coordinate_transformer
+from transformation_functions import CoordinateTransformer
 import matplotlib.pyplot as plt
 
-class TestCTImage(unittest.TestCase):
-    def setUp(self) :
+
+class TestCoordinateTransformer(unittest.TestCase):
+    def setUp(self):
         self.coordinates = []
-        self.xcoordinates = [100,100,200,200]
-        self.ycoordinates = [100,200,200,100]
+        self.xcoordinates = [100, 100, 200, 200]
+        self.ycoordinates = [100, 200, 200, 100]
 
         for i, ycoordinate in enumerate(self.ycoordinates):
-            self.coordinates.append((self.xcoordinates[i],ycoordinate))
+            self.coordinates.append((self.xcoordinates[i], ycoordinate))
 
-        self.coordinate_transformer = Coordinate_transformer(self.coordinates)
+        self.coordinate_transformer = CoordinateTransformer(self.coordinates)
         before_translation = self.coordinate_transformer.get_contoured_image()
         plt.imshow(before_translation)
         plt.close()
         self.test_get_coordinate()
 
     def test_get_coordinate(self):
-        self.assertAlmostEqual(self.coordinate_transformer.x , self.xcoordinates)
-        self.assertAlmostEqual(self.coordinate_transformer.y , self.ycoordinates)
-        self.assertAlmostEqual(self.coordinate_transformer.ox , 150)
-        self.assertAlmostEqual(self.coordinate_transformer.oy , 150)
+        self.assertAlmostEqual(self.coordinate_transformer.x, self.xcoordinates)
+        self.assertAlmostEqual(self.coordinate_transformer.y, self.ycoordinates)
+        self.assertAlmostEqual(self.coordinate_transformer.ox, 150)
+        self.assertAlmostEqual(self.coordinate_transformer.oy, 150)
 
     def test_contour_translation(self):
         self.coordinate_transformer.translate_contour()

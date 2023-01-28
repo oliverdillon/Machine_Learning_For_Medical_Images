@@ -3,8 +3,8 @@ import numpy as np
 from processed_data_model import ProcessedDataModel
 import scipy.ndimage
 
-from util.file_functions import read_txt_and_append_to_list
-from util.transformation_functions import Coordinate_transformer
+from file_functions import read_txt_and_append_to_list
+from transformation_functions import CoordinateTransformer
 
 
 def get_min_max_z_coordinate(organ_data, ct_images, max_z_location, min_z_location, reverse_factor):
@@ -137,7 +137,7 @@ class SaveFeatureFileProcessor:
         contour_points = write_contour_to_image(organ, ct_image.pydicom, reverse_factor)
 
         if len(contour_points) != 0:
-            coordinate_transformer = Coordinate_transformer(contour_points)
+            coordinate_transformer = CoordinateTransformer(contour_points)
             if is_augmented_value:
                 image_array[..., 1] = coordinate_transformer.get_augmented_contoured_image()
             else:

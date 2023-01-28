@@ -9,7 +9,7 @@ import argparse
 from series_model import SeriesModel
 from patient_model import PatientModel
 from dataset_model import DatasetModel
-from util.file_functions import read_csv_as_sorted_list, save_csv_list
+from file_functions import read_csv_as_sorted_list, save_csv_list
 
 
 def convert_list_to_dict(list_param):
