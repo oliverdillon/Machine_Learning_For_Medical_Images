@@ -1,12 +1,12 @@
-from models.cnn_dataset import CNN_Dataset
-from models.training_image_loader import Training_image_loader
-from processors.create_cnn_models import Convolutional_neural_network
+from training_data_model import TrainingDataModel
+from image_loader_model import ImageLoaderModel
+from cnn_model import CnnModel
 import numpy as np
 from tensorflow.keras import models
 import matplotlib.pyplot as plt
 
 
-def create_metrics_plots (epoch_nums, path, metric1, metric2, xlabel, ylabel , legend, loc, yscale= None):
+def create_metrics_plots(epoch_nums, path, metric1, metric2, xlabel, ylabel, legend, loc, yscale=None):
     fig, ax = plt.subplots(1)
     ax.plot(epoch_nums, metric1, 'x')
     ax.plot(epoch_nums, metric2, 'x')
@@ -19,38 +19,39 @@ def create_metrics_plots (epoch_nums, path, metric1, metric2, xlabel, ylabel , l
     fig.savefig(path)
     plt.show(fig)
 
-    
-def save_metrics(history,path):
-    np.savetxt(path+"/Validation Accuracy.csv", np.array(history.history['val_accuracy']), delimiter=",")
-    np.savetxt(path+"/Validation Loss.csv", np.array(history.history['val_loss']), delimiter=",")
-    np.savetxt(path+"/Accuracy.csv", np.array(history.history['accuracy']), delimiter=",")
-    np.savetxt(path+"/Loss.csv", np.array(history.history['loss']), delimiter=",")
+
+def save_metrics(history, path):
+    np.savetxt(path + "/Validation Accuracy.csv", np.array(history.history['val_accuracy']), delimiter=",")
+    np.savetxt(path + "/Validation Loss.csv", np.array(history.history['val_loss']), delimiter=",")
+    np.savetxt(path + "/Accuracy.csv", np.array(history.history['accuracy']), delimiter=",")
+    np.savetxt(path + "/Loss.csv", np.array(history.history['loss']), delimiter=",")
 
     epoch_nums = []
     for i in range(len(history.history['accuracy'])):
-        epoch_nums.append(i+1)
+        epoch_nums.append(i + 1)
 
-        diff = [1-acc for acc in history.history['accuracy'] ]
-        val_diff = [1-val_acc for val_acc in history.history['val_accuracy'] ]
-        
-        create_metrics_plots(epoch_nums, path+"/Accuracy.png", history.history['accuracy'], history.history['val_accuracy'],
-                             'Accuracy', 'Epoch', ['Training', 'Validation'],'lower right')
+        diff = [1 - acc for acc in history.history['accuracy']]
+        val_diff = [1 - val_acc for val_acc in history.history['val_accuracy']]
 
-        create_metrics_plots(epoch_nums, path+"/Error.png", diff, val_diff,
-                             'Error', 'Epoch', ['Training', 'Validation'],'upper right',"log")
-        
-        create_metrics_plots(epoch_nums, path+"/Loss.png", history.history['loss'], history.history['val_loss'],
-                             'Loss', 'Epoch', ['Training', 'Validation'],'upper right',"log")
+        create_metrics_plots(epoch_nums, path + "/Accuracy.png", history.history['accuracy'],
+                             history.history['val_accuracy'],
+                             'Accuracy', 'Epoch', ['Training', 'Validation'], 'lower right')
+
+        create_metrics_plots(epoch_nums, path + "/Error.png", diff, val_diff,
+                             'Error', 'Epoch', ['Training', 'Validation'], 'upper right', "log")
+
+        create_metrics_plots(epoch_nums, path + "/Loss.png", history.history['loss'], history.history['val_loss'],
+                             'Loss', 'Epoch', ['Training', 'Validation'], 'upper right', "log")
 
 
-class Train_neural_network:
+class CnnTrainer:
 
     def __init__(self, allowed_organs, training_data, testing_data, index1, index2):
         X_data = np.concatenate([training_data.features[:index1], training_data.features[index2:]], axis=0)
-        y_data = np.concatenate([training_data.labels[:index1], training_data.labels[index2:]],  axis=0)
+        y_data = np.concatenate([training_data.labels[:index1], training_data.labels[index2:]], axis=0)
 
-        training_data = CNN_Dataset(training_data.features[index1:index2], training_data.labels[index1:index2])
-        validation_data = CNN_Dataset(X_data, y_data)
+        training_data = TrainingDataModel(training_data.features[index1:index2], training_data.labels[index1:index2])
+        validation_data = TrainingDataModel(X_data, y_data)
 
         self.no_classes = len(allowed_organs)
         self.testing_data = testing_data
@@ -64,19 +65,19 @@ class Train_neural_network:
         self.X_test = testing_data.features
         self.y_test = testing_data.labels
 
-        self.training_generator = Training_image_loader(self.X_train, self.y_train, self.stepSize)
-        self.validation_generator = Training_image_loader(self.X_val, self.y_val, self.stepSize)
+        self.training_generator = ImageLoaderModel(self.X_train, self.y_train, self.stepSize)
+        self.validation_generator = ImageLoaderModel(self.X_val, self.y_val, self.stepSize)
 
         temp_batch, _ = self.training_generator.__getitem__(0)
         self.training_data_shape = temp_batch.shape[1:]
-        self.training_steps_per_epoch = int(round(len(self.X_train))/self.stepSize)
-        self.validation_steps_per_epoch = int(round(len(self.X_val))/self.stepSize)
-        self.testing_steps = int(round(len(self.X_test))/self.stepSize)
+        self.training_steps_per_epoch = int(round(len(self.X_train)) / self.stepSize)
+        self.validation_steps_per_epoch = int(round(len(self.X_val)) / self.stepSize)
+        self.testing_steps = int(round(len(self.X_test)) / self.stepSize)
 
-        self.convolutional_neural_network = Convolutional_neural_network(no_of_spacial_dimensions=3)
+        self.convolutional_neural_network = CnnModel(no_of_spacial_dimensions=3)
 
         self.train_neural_network()
-        self.plot_model_activations()
+        # self.plot_model_activations()
 
     def train_neural_network(self):
         self.convolutional_neural_network.add_convolution_layer(no_filter=16, shape=self.training_data_shape)
@@ -95,17 +96,16 @@ class Train_neural_network:
 
         self.history = history
 
-
     def get_metrics(self):
-        return self.history.history['accuracy'],self.history.history['loss'],\
+        return self.history.history['accuracy'], self.history.history['loss'], \
                self.history.history['val_loss'], self.history.history['val_acc']
 
     def evaluate_neural_network(self):
-        testing_generator = Training_image_loader(self.X_test, self.y_test, self.stepSize)
+        testing_generator = ImageLoaderModel(self.X_test, self.y_test, self.stepSize)
         test_loss, test_accuracy = self.cnn_model.evaluate(testing_data=testing_generator,
                                                            testing_steps=self.testing_steps, verbose=0)
         return test_accuracy, test_loss
-        
+
     def plot_model_activations(self, X_test):
         # Extracts the outputs of the top 4 layers
         layer_outputs = [layer.output for layer in self.cnn_model.layers[:4]]

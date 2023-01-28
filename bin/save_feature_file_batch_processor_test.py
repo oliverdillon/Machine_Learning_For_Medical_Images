@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, mock_open
 
 
-class TestCTImage(unittest.TestCase):
+class TestSaveFeatureFileBatchProcessor(unittest.TestCase):
     def setUp(self) -> None:
         self.augmentation_metadata = {}
         self.classification_metadata = {}

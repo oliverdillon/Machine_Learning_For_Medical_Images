@@ -10,8 +10,7 @@ from tensorflow.keras.layers import MaxPooling3D, Conv3D, Dropout
 from tensorflow.keras.optimizers import Adam
 
 
-
-class Convolutional_neural_network:
+class CnnModel:
     def __init__(self, no_of_spacial_dimensions):
         self.no_of_spacial_dimensions = no_of_spacial_dimensions
         self.cnn_model = Sequential()  # add each layer in turn

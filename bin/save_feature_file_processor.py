@@ -1,6 +1,6 @@
 from pathlib import Path
 import numpy as np
-from models.processed_data import Processed_data
+from processed_data_model import ProcessedDataModel
 import scipy.ndimage
 
 from util.file_functions import read_txt_and_append_to_list
@@ -78,7 +78,7 @@ def is_augmented(organ):
     return False
 
 
-class Process_and_save_feature_files:
+class SaveFeatureFileProcessor:
     def __init__(self, dataset, save_directory, allowed_organs):
         self.dataset = dataset
         self.save_base_directory = save_directory
@@ -90,7 +90,7 @@ class Process_and_save_feature_files:
         self.new_spacing = 3
         self.desired_matrix_length = 36
         self.filter_date = None
-        self.processed_data = Processed_data()
+        self.processed_data = ProcessedDataModel()
         self.filter_patient_data()
         self.get_training_data()
 
@@ -180,14 +180,14 @@ class Process_and_save_feature_files:
             organ_dictionary = patient.series[0].contours_data
             organ_map = patient.series[0].organs
             ct_images = patient.series[1].medical_images
-            subject_ID = patient.series[0].subject_ID
+            subject_id = patient.series[0].subject_ID
 
             if any(required_contour not in organ_map.keys() for required_contour in self.required_contours):
-                print("Patient " + subject_ID + " did not have all the necessary contours")
+                print("Patient " + subject_id + " did not have all the necessary contours")
                 continue
 
-            print("Saving for " + subject_ID)
-            directory = self.save_base_directory + "/" + subject_ID
+            print("Saving for " + subject_id)
+            directory = self.save_base_directory + "/" + subject_id
             ct_image_directory, label_directory = create_directories(directory)
 
             try:
@@ -218,7 +218,7 @@ class Process_and_save_feature_files:
                     np.savetxt(label_directory.format(organ), np.array(label), delimiter=",")
                     self.processed_data.features.append(ct_image_directory.format(organ))
                     self.processed_data.labels.append(label_directory.format(organ))
-            print("Saved for " + subject_ID)
+            print("Saved for " + subject_id)
 
         # Save paths to files
         if len(self.processed_data.features) != 0:

@@ -1,4 +1,4 @@
-class Processed_data:
+class ProcessedDataModel:
     def __init__(self):
         self.features = []
         self.labels = []
