@@ -73,16 +73,16 @@ class DatasetExtractor:
 
 
 # Initialize parser
-parser = argparse.ArgumentParser()
-
-# Adding optional argument
-parser.add_argument("-m", "--meta_data_dir", help="Absolute path to meta_data csv file")
-
-# Read arguments from command line
-args = parser.parse_args()
-
-if args.Output:
-    print("Displaying Output as: % s" % args.Output)
+# parser = argparse.ArgumentParser()
+#
+# # Adding optional argument
+# parser.add_argument("-m", "--meta_data_dir", help="Absolute path to meta_data csv file")
+#
+# # Read arguments from command line
+# args = parser.parse_args()
+#
+# if args.Output:
+#     print("Displaying Output as: % s" % args.Output)
 
 # if __name__ == "__main__":
 #     root_directory = os.getcwd().replace("processors", "")

@@ -8,18 +8,18 @@ from matplotlib import animation
 
 
 class ProcessedMedicalImagePlotter:
-    def __init__(self, directory, allowed_organ):
+    def __init__(self, directory, allowed_organs):
+        print("STARTED - ProcessedMedicalImagePlotter with "
+              "directory= {}\n and allowed_organs= {}".format(directory, allowed_organs))
         self.image_width = self.image_height = 512
         self.base_directory = directory
-        self.allowed_organs = allowed_organ
+        self.allowed_organs = allowed_organs
         self.patient_class_1 = []
         self.patient_class_2 = []
         self.class_1 = []
         self.class_2 = []
         self.read_ct_images()
-        plt.plot(self.patient_class_1, self.class_1, scaley='log')
-        plt.plot(self.patient_class_2, self.class_2, scaley='log')
-        plt.show()
+        print("COMPLETE - ProcessedMedicalImagePlotter")
 
     def read_ct_images(self):
         filename = self.base_directory + "/features.txt"
@@ -70,6 +70,6 @@ class ProcessedMedicalImagePlotter:
 
         ani = animation.ArtistAnimation(fig1, ims, interval=200, blit=True,
                                         repeat_delay=1000)
-        print(self.base_directory + "/" + patient_name + "/" + organ + ".gif")
+        print("OUTPUT: Saved GIF file at\n"+self.base_directory + "/" + patient_name + "/" + organ + ".gif")
         ani.save(self.base_directory + "/" + patient_name + "/" + organ + ".gif", dpi=480)
         plt.close()
